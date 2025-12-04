@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+    <title>Bảng kê đối soát</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="icon" href="https://i.ibb.co/8b4MvV2/Black-Modern-Software-Programmer-Logo-2.png">
+</head>
+<body>
+    <!-- Header -->
+    <header class="header">
+        <h1>Bảng kê đối soát</h1>
+    </header>
+
+    <!-- Filter Section -->
+    <div class="filter-section">
+        <div class="filter-container">
+            <div class="filter-item">
+                <label for="customerSelect">Tên khách hàng:</label>
+                <select id="customerSelect" class="select-dropdown">
+                    <option value="">-- Chọn khách hàng --</option>
+                    <option value="customer1">Nguyễn Văn A</option>
+                    <option value="customer2">Trần Thị B</option>
+                    <option value="customer3">Lê Văn C</option>
+                    <option value="customer4">Phạm Thị D</option>
+                    <option value="customer5">Hoàng Văn E</option>
+                </select>
+            </div>
+            
+            <div class="filter-item">
+                <label for="fromDate">Từ ngày:</label>
+                <input type="date" id="fromDate" class="date-input">
+            </div>
+            
+            <div class="filter-item">
+                <label for="toDate">Đến ngày:</label>
+                <input type="date" id="toDate" class="date-input">
+            </div>
+            
+            <div class="filter-item">
+                <button id="filterBtn" class="btn-filter">Lọc dữ liệu</button>
+                <button id="resetBtn" class="btn-reset">Đặt lại</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Table Section -->
+    <div class="table-section">
+        <div class="table-container">
+            <table id="dataTable">
+                <thead>
+                    <tr>
+                        <th>STT</th>
+                        <th>Tên khách hàng</th>
+                        <th>Ngày giao dịch</th>
+                        <th>Mã đơn hàng</th>
+                        <th>Số tiền (VNĐ)</th>
+                        <th>Trạng thái</th>
+                        <th>Ghi chú</th>
+                    </tr>
+                </thead>
+                <tbody id="tableBody">
+                    <!-- Data will be inserted here by JavaScript -->
+                </tbody>
+                <tfoot>
+                    <tr class="total-row">
+                        <td colspan="4"><strong>Tổng cộng:</strong></td>
+                        <td id="totalAmount"><strong>0</strong></td>
+                        <td colspan="2"></td>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+        
+        <div id="noData" class="no-data" style="display: none;">
+            <p>Không có dữ liệu phù hợp với bộ lọc</p>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
