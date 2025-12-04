@@ -1,0 +1,1226 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NAK Logistics Dashboard</title>
+
+    <!-- External Resources -->
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Outlined" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
+
+    <style>
+        /* ============================================
+           GLOBAL STYLES & RESET
+           ============================================ */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary-color: #2962ff;
+            --secondary-color: #00bfa5;
+            --danger-color: #e53935;
+            --warning-color: #ff6f00;
+            --success-color: #43a047;
+            --text-primary: #212121;
+            --text-secondary: #757575;
+            --bg-main: #f5f7fa;
+            --bg-card: #ffffff;
+            --border-color: #e0e0e0;
+            --sidebar-width: 260px;
+            --sidebar-collapsed: 70px;
+            --header-height: 64px;
+        }
+
+        body {
+            font-family: 'Roboto', sans-serif;
+            background: var(--bg-main);
+            color: var(--text-primary);
+            overflow-x: hidden;
+        }
+
+        /* ============================================
+           PROGRESS BAR
+           ============================================ */
+        .progress-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 3px;
+            background: rgba(0,0,0,0.1);
+            z-index: 9999;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+
+        .progress-container.active {
+            opacity: 1;
+        }
+
+        .progress-bar {
+            height: 100%;
+            background: linear-gradient(90deg, var(--primary-color), var(--secondary-color));
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+
+        /* ============================================
+           SIDEBAR
+           ============================================ */
+        .sidebar {
+            position: fixed;
+            left: 0;
+            top: 0;
+            width: var(--sidebar-width);
+            height: 100vh;
+            background: var(--bg-card);
+            border-right: 1px solid var(--border-color);
+            display: flex;
+            flex-direction: column;
+            transition: all 0.3s ease;
+            z-index: 100;
+        }
+
+        .sidebar.collapsed {
+            width: var(--sidebar-collapsed);
+        }
+
+        .sidebar.collapsed .brand-text,
+        .sidebar.collapsed .menu-item span,
+        .sidebar.collapsed .user-info-text {
+            display: none;
+        }
+
+        .brand-section {
+            padding: 20px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .brand-logo {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .brand-logo-img {
+            width: 32px;
+            height: 32px;
+            border-radius: 6px;
+            object-fit: cover;
+        }
+
+        .brand-text {
+            font-size: 16px;
+            font-weight: 700;
+            color: var(--primary-color);
+        }
+
+        .menu-list {
+            flex: 1;
+            padding: 20px 0;
+            list-style: none;
+            overflow-y: auto;
+        }
+
+        .menu-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 20px;
+            cursor: pointer;
+            transition: all 0.2s;
+            color: var(--text-secondary);
+        }
+
+        .menu-item:hover {
+            background: rgba(41, 98, 255, 0.08);
+            color: var(--primary-color);
+        }
+
+        .menu-item.active {
+            background: rgba(41, 98, 255, 0.12);
+            color: var(--primary-color);
+            border-right: 3px solid var(--primary-color);
+        }
+
+        .menu-item i {
+            font-size: 24px;
+        }
+
+        .user-profile-mini {
+            padding: 16px 20px;
+            border-top: 1px solid var(--border-color);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .avatar-small {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+        }
+
+        .user-info-text h4 {
+            font-size: 14px;
+            font-weight: 500;
+        }
+
+        .user-info-text p {
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+
+        /* ============================================
+           MAIN WRAPPER
+           ============================================ */
+        .main-wrapper {
+            margin-left: var(--sidebar-width);
+            min-height: 100vh;
+            transition: margin-left 0.3s ease;
+        }
+
+        .main-wrapper.expanded {
+            margin-left: var(--sidebar-collapsed);
+        }
+
+        /* ============================================
+           HEADER
+           ============================================ */
+        .top-header {
+            height: var(--header-height);
+            background: var(--bg-card);
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 24px;
+            position: sticky;
+            top: 0;
+            z-index: 90;
+        }
+
+        .menu-toggle-btn {
+            cursor: pointer;
+            padding: 8px;
+            border-radius: 8px;
+            transition: background 0.2s;
+        }
+
+        .menu-toggle-btn:hover {
+            background: rgba(0,0,0,0.05);
+        }
+
+        .breadcrumb {
+            margin-left: 16px;
+            font-size: 14px;
+            color: var(--text-secondary);
+        }
+
+        .header-right {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .credit-badge {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 16px;
+            background: rgba(41, 98, 255, 0.08);
+            color: var(--primary-color);
+            border-radius: 20px;
+            font-size: 13px;
+            font-weight: 500;
+        }
+
+        .icon-btn {
+            width: 40px;
+            height: 40px;
+            border: none;
+            background: transparent;
+            cursor: pointer;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background 0.2s;
+        }
+
+        .icon-btn:hover {
+            background: rgba(0,0,0,0.05);
+        }
+
+        /* ============================================
+           CONTENT AREA
+           ============================================ */
+        .content-area {
+            padding: 24px;
+        }
+
+        /* Date Filter */
+        .date-filter-container {
+            background: var(--bg-card);
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 24px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        }
+
+        .filter-header h3 {
+            font-size: 18px;
+            font-weight: 500;
+            margin-bottom: 16px;
+        }
+
+        .filter-controls {
+            display: flex;
+            gap: 16px;
+            flex-wrap: wrap;
+        }
+
+        .filter-buttons {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .filter-btn {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 20px;
+            border: 2px solid var(--border-color);
+            background: white;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-size: 14px;
+            font-weight: 500;
+        }
+
+        .filter-btn:hover {
+            border-color: var(--primary-color);
+            color: var(--primary-color);
+        }
+
+        .filter-btn.active {
+            background: var(--primary-color);
+            border-color: var(--primary-color);
+            color: white;
+        }
+
+        .filter-date-picker {
+            display: flex;
+            gap: 8px;
+        }
+
+        .date-input {
+            padding: 10px 16px;
+            border: 2px solid var(--border-color);
+            border-radius: 8px;
+            font-size: 14px;
+        }
+
+        .btn-reset {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 20px;
+            background: var(--danger-color);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 500;
+            transition: opacity 0.2s;
+        }
+
+        .btn-reset:hover {
+            opacity: 0.9;
+        }
+
+        /* Stats Container */
+        .stats-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 24px;
+        }
+
+        .stat-card {
+            background: var(--bg-card);
+            border-radius: 12px;
+            padding: 24px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            transition: transform 0.2s;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 4px 16px rgba(0,0,0,0.12);
+        }
+
+        .stat-info h3 {
+            font-size: 28px;
+            font-weight: 700;
+            margin-bottom: 8px;
+        }
+
+        .stat-info span {
+            font-size: 14px;
+            color: var(--text-secondary);
+        }
+
+        .stat-icon {
+            width: 60px;
+            height: 60px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .stat-icon i {
+            font-size: 32px;
+        }
+
+        /* Charts Grid */
+        .charts-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(500px, 1fr));
+            gap: 24px;
+        }
+
+        .chart-card {
+            background: var(--bg-card);
+            border-radius: 12px;
+            padding: 24px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        }
+
+        .chart-header {
+            margin-bottom: 20px;
+        }
+
+        .chart-header h3 {
+            font-size: 18px;
+            font-weight: 600;
+        }
+
+        .chart-container {
+            width: 100%;
+            height: 400px;
+        }
+
+        /* Loading Skeleton */
+        .skeleton {
+            background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+            background-size: 200% 100%;
+            animation: loading 1.5s infinite;
+            border-radius: 8px;
+        }
+
+        @keyframes loading {
+            0% { background-position: 200% 0; }
+            100% { background-position: -200% 0; }
+        }
+
+        .skeleton-card {
+            height: 100px;
+        }
+
+        .skeleton-chart {
+            height: 400px;
+        }
+
+        /* Overlay for mobile */
+        .overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 99;
+        }
+
+        .overlay.active {
+            display: block;
+        }
+
+        /* ============================================
+           RESPONSIVE
+           ============================================ */
+        @media (max-width: 768px) {
+            .sidebar {
+                transform: translateX(-100%);
+            }
+
+            .sidebar.mobile-open {
+                transform: translateX(0);
+            }
+
+            .main-wrapper {
+                margin-left: 0;
+            }
+
+            .charts-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .filter-controls {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Progress Bar -->
+    <div id="progressBar" class="progress-container">
+        <div class="progress-bar"></div>
+    </div>
+
+    <!-- Overlay -->
+    <div id="overlay" class="overlay"></div>
+
+    <!-- Sidebar -->
+    <aside class="sidebar" id="sidebar">
+        <div class="brand-section">
+            <div class="brand-logo">
+                <img src="https://i.postimg.cc/mkZMJVCP/z7252548177214-db5c47a95c184584a9b5eece2e6da632.jpg"
+                     alt="NAK Logistics Logo"
+                     class="brand-logo-img">
+                <span class="brand-text">NAK LOGISTICS</span>
+            </div>
+        </div>
+
+        <ul class="menu-list" id="menuList"></ul>
+
+        <div class="user-profile-mini">
+            <img src="https://ui-avatars.com/api/?name=Admin+User&background=random" alt="User" class="avatar-small">
+            <div class="user-info-text">
+                <h4>Admin User</h4>
+                <p>admin@allingo.vn</p>
+            </div>
+        </div>
+    </aside>
+
+    <!-- Main Wrapper -->
+    <div class="main-wrapper" id="mainWrapper">
+        <!-- Header -->
+        <header class="top-header">
+            <div style="display: flex; align-items: center;">
+                <i class="material-icons-outlined menu-toggle-btn" onclick="App.toggleSidebar()">menu</i>
+                <div class="breadcrumb" id="breadcrumb">
+                    <i class="material-icons-outlined" style="vertical-align: text-bottom; font-size: 18px;">home</i>
+                    / <span>Tổng quan</span>
+                </div>
+            </div>
+
+            <div class="header-right">
+                <div class="credit-badge">
+                    <i class="material-icons-outlined" style="font-size: 16px;">database</i>
+                    Source: REST API
+                </div>
+                <button class="icon-btn"><i class="material-icons-outlined">notifications</i></button>
+            </div>
+        </header>
+
+        <!-- Content Area -->
+        <main class="content-area" id="mainContent">
+            <!-- Content will be rendered here -->
+        </main>
+    </div>
+
+    <script>
+        // ============================================
+        // CONFIGURATION
+        // ============================================
+        const CONFIG = {
+            // API endpoint - Thay đổi URL này để trỏ đến backend của bạn
+            API_BASE_URL: 'http://localhost:3000/api',
+
+            // Menu items
+            menuItems: [
+                { id: 'overview', label: 'Tổng quan', icon: 'dashboard' },
+                { id: 'system', label: 'Hệ thống', icon: 'settings' },
+                { id: 'accounting', label: 'Kế toán', icon: 'account_balance' },
+                { id: 'reports', label: 'Báo cáo', icon: 'assessment' }
+            ],
+
+            ui: {
+                defaultTab: 'overview',
+                mobileBreakpoint: 768
+            }
+        };
+
+        // ============================================
+        // API CLIENT
+        // ============================================
+        const ApiClient = {
+            /**
+             * Gọi API endpoint
+             */
+            async _fetch(endpoint, options = {}) {
+                try {
+                    const url = `${CONFIG.API_BASE_URL}${endpoint}`;
+                    console.log('[API] Calling:', url, options);
+
+                    const response = await fetch(url, {
+                        method: options.method || 'GET',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            ...options.headers
+                        },
+                        body: options.body ? JSON.stringify(options.body) : undefined
+                    });
+
+                    if (!response.ok) {
+                        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                    }
+
+                    const data = await response.json();
+                    console.log('[API] Response:', data);
+                    return data;
+                } catch (error) {
+                    console.error('[API] Error:', error);
+                    throw error;
+                }
+            },
+
+            /**
+             * Lấy tất cả dữ liệu dashboard
+             */
+            async getAllDashboardData(filter) {
+                // Demo mode: Trả về dữ liệu mẫu
+                return this._getDemoData();
+
+                // Production mode: Uncomment dòng dưới
+                // return this._fetch('/dashboard/all', { method: 'POST', body: filter });
+            },
+
+            /**
+             * Dữ liệu mẫu cho demo
+             */
+            _getDemoData() {
+                return {
+                    success: true,
+                    data: {
+                        overview: {
+                            soChuyen: 1250,
+                            soXe: 85,
+                            doanhThu: 4250000000,
+                            soKhachHang: 42
+                        },
+                        topCustomers: [
+                            { ma_khach_hang: 'KH001', ten_khach_hang: 'Công ty TNHH ABC', so_chuyen: 250, tong_doanh_thu: 850000000 },
+                            { ma_khach_hang: 'KH002', ten_khach_hang: 'Công ty CP XYZ', so_chuyen: 180, tong_doanh_thu: 620000000 },
+                            { ma_khach_hang: 'KH003', ten_khach_hang: 'Tập đoàn DEF', so_chuyen: 150, tong_doanh_thu: 540000000 },
+                            { ma_khach_hang: 'KH004', ten_khach_hang: 'Công ty GHI', so_chuyen: 120, tong_doanh_thu: 420000000 },
+                            { ma_khach_hang: 'KH005', ten_khach_hang: 'Doanh nghiệp JKL', so_chuyen: 95, tong_doanh_thu: 350000000 }
+                        ],
+                        topRoutes: [
+                            { tuyen: 'TP.HCM - Hà Nội', so_chuyen: 320, tong_doanh_thu: 1200000000 },
+                            { tuyen: 'TP.HCM - Đà Nẵng', so_chuyen: 280, tong_doanh_thu: 980000000 },
+                            { tuyen: 'Hà Nội - Hải Phòng', so_chuyen: 200, tong_doanh_thu: 650000000 },
+                            { tuyen: 'TP.HCM - Cần Thơ', so_chuyen: 150, tong_doanh_thu: 480000000 },
+                            { tuyen: 'Đà Nẵng - Huế', so_chuyen: 120, tong_doanh_thu: 380000000 }
+                        ],
+                        topVehicles: [
+                            { bien_kiem_soat: '51G-12345', so_chuyen: 180, tong_doanh_thu: 620000000, doanh_thu_trung_binh: 3444444 },
+                            { bien_kiem_soat: '29H-67890', so_chuyen: 165, tong_doanh_thu: 580000000, doanh_thu_trung_binh: 3515151 },
+                            { bien_kiem_soat: '30K-11111', so_chuyen: 150, tong_doanh_thu: 540000000, doanh_thu_trung_binh: 3600000 },
+                            { bien_kiem_soat: '51F-22222', so_chuyen: 140, tong_doanh_thu: 510000000, doanh_thu_trung_binh: 3642857 },
+                            { bien_kiem_soat: '29G-33333', so_chuyen: 130, tong_doanh_thu: 480000000, doanh_thu_trung_binh: 3692307 }
+                        ],
+                        bottomVehicles: [
+                            { bien_kiem_soat: '51A-99999', so_chuyen: 15, tong_doanh_thu: 45000000, doanh_thu_trung_binh: 3000000 },
+                            { bien_kiem_soat: '29B-88888', so_chuyen: 18, tong_doanh_thu: 52000000, doanh_thu_trung_binh: 2888888 },
+                            { bien_kiem_soat: '30C-77777', so_chuyen: 22, tong_doanh_thu: 68000000, doanh_thu_trung_binh: 3090909 },
+                            { bien_kiem_soat: '51D-66666', so_chuyen: 25, tong_doanh_thu: 75000000, doanh_thu_trung_binh: 3000000 },
+                            { bien_kiem_soat: '29E-55555', so_chuyen: 28, tong_doanh_thu: 84000000, doanh_thu_trung_binh: 3000000 }
+                        ]
+                    }
+                };
+            }
+        };
+
+        // ============================================
+        // CHART UTILITIES
+        // ============================================
+        const ChartUtils = {
+            /**
+             * Render chart khách hàng
+             */
+            renderTopCustomersChart(elementId, data) {
+                const chart = echarts.init(document.getElementById(elementId));
+
+                const option = {
+                    tooltip: {
+                        trigger: 'axis',
+                        axisPointer: { type: 'shadow' }
+                    },
+                    grid: {
+                        left: '3%',
+                        right: '4%',
+                        bottom: '3%',
+                        containLabel: true
+                    },
+                    xAxis: {
+                        type: 'value',
+                        axisLabel: {
+                            formatter: (value) => (value / 1000000).toFixed(0) + 'M'
+                        }
+                    },
+                    yAxis: {
+                        type: 'category',
+                        data: data.map(item => item.ten_khach_hang).reverse()
+                    },
+                    series: [{
+                        name: 'Doanh thu',
+                        type: 'bar',
+                        data: data.map(item => item.tong_doanh_thu).reverse(),
+                        itemStyle: {
+                            color: new echarts.graphic.LinearGradient(0, 0, 1, 0, [
+                                { offset: 0, color: '#2962ff' },
+                                { offset: 1, color: '#00bfa5' }
+                            ])
+                        }
+                    }]
+                };
+
+                chart.setOption(option);
+                window.addEventListener('resize', () => chart.resize());
+            },
+
+            /**
+             * Render chart tuyến
+             */
+            renderTopRoutesChart(elementId, data) {
+                const chart = echarts.init(document.getElementById(elementId));
+
+                const option = {
+                    tooltip: {
+                        trigger: 'axis',
+                        axisPointer: { type: 'shadow' }
+                    },
+                    grid: {
+                        left: '3%',
+                        right: '4%',
+                        bottom: '3%',
+                        containLabel: true
+                    },
+                    xAxis: {
+                        type: 'category',
+                        data: data.map(item => item.tuyen),
+                        axisLabel: {
+                            rotate: 45,
+                            interval: 0
+                        }
+                    },
+                    yAxis: {
+                        type: 'value',
+                        axisLabel: {
+                            formatter: (value) => (value / 1000000).toFixed(0) + 'M'
+                        }
+                    },
+                    series: [{
+                        name: 'Doanh thu',
+                        type: 'bar',
+                        data: data.map(item => item.tong_doanh_thu),
+                        itemStyle: {
+                            color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+                                { offset: 0, color: '#ff6f00' },
+                                { offset: 1, color: '#ffa726' }
+                            ])
+                        }
+                    }]
+                };
+
+                chart.setOption(option);
+                window.addEventListener('resize', () => chart.resize());
+            },
+
+            /**
+             * Render chart xe
+             */
+            renderTopVehiclesChart(elementId, data) {
+                const chart = echarts.init(document.getElementById(elementId));
+
+                const option = {
+                    tooltip: {
+                        trigger: 'axis',
+                        axisPointer: { type: 'shadow' }
+                    },
+                    grid: {
+                        left: '3%',
+                        right: '4%',
+                        bottom: '3%',
+                        containLabel: true
+                    },
+                    xAxis: {
+                        type: 'value',
+                        axisLabel: {
+                            formatter: (value) => (value / 1000000).toFixed(0) + 'M'
+                        }
+                    },
+                    yAxis: {
+                        type: 'category',
+                        data: data.map(item => item.bien_kiem_soat).reverse()
+                    },
+                    series: [{
+                        name: 'Doanh thu',
+                        type: 'bar',
+                        data: data.map(item => item.tong_doanh_thu).reverse(),
+                        itemStyle: {
+                            color: new echarts.graphic.LinearGradient(0, 0, 1, 0, [
+                                { offset: 0, color: '#43a047' },
+                                { offset: 1, color: '#66bb6a' }
+                            ])
+                        }
+                    }]
+                };
+
+                chart.setOption(option);
+                window.addEventListener('resize', () => chart.resize());
+            },
+
+            /**
+             * Render chart xe thấp
+             */
+            renderBottomVehiclesChart(elementId, data) {
+                const chart = echarts.init(document.getElementById(elementId));
+
+                const option = {
+                    tooltip: {
+                        trigger: 'axis',
+                        axisPointer: { type: 'shadow' }
+                    },
+                    grid: {
+                        left: '3%',
+                        right: '4%',
+                        bottom: '3%',
+                        containLabel: true
+                    },
+                    xAxis: {
+                        type: 'value',
+                        axisLabel: {
+                            formatter: (value) => (value / 1000000).toFixed(0) + 'M'
+                        }
+                    },
+                    yAxis: {
+                        type: 'category',
+                        data: data.map(item => item.bien_kiem_soat).reverse()
+                    },
+                    series: [{
+                        name: 'Doanh thu',
+                        type: 'bar',
+                        data: data.map(item => item.tong_doanh_thu).reverse(),
+                        itemStyle: {
+                            color: new echarts.graphic.LinearGradient(0, 0, 1, 0, [
+                                { offset: 0, color: '#e53935' },
+                                { offset: 1, color: '#ef5350' }
+                            ])
+                        }
+                    }]
+                };
+
+                chart.setOption(option);
+                window.addEventListener('resize', () => chart.resize());
+            }
+        };
+
+        // ============================================
+        // UI COMPONENTS
+        // ============================================
+        const UIComponents = {
+            elements: {
+                sidebar: null,
+                mainWrapper: null,
+                menuList: null,
+                mainContent: null,
+                overlay: null,
+                breadcrumb: null,
+                progressBar: null,
+                progressBarInner: null
+            },
+
+            state: {
+                activeTab: CONFIG.ui.defaultTab,
+                isCollapsed: false,
+                isMobile: false
+            },
+
+            init() {
+                this.elements.sidebar = document.getElementById('sidebar');
+                this.elements.mainWrapper = document.getElementById('mainWrapper');
+                this.elements.menuList = document.getElementById('menuList');
+                this.elements.mainContent = document.getElementById('mainContent');
+                this.elements.overlay = document.getElementById('overlay');
+                this.elements.breadcrumb = document.querySelector('#breadcrumb span');
+                this.elements.progressBar = document.getElementById('progressBar');
+                this.elements.progressBarInner = this.elements.progressBar.querySelector('.progress-bar');
+
+                this.state.isMobile = window.innerWidth <= CONFIG.ui.mobileBreakpoint;
+            },
+
+            renderMenu() {
+                const menuHtml = CONFIG.menuItems.map(item => `
+                    <li class="menu-item ${item.id === this.state.activeTab ? 'active' : ''}"
+                        onclick="App.navigate('${item.id}')"
+                        title="${this.state.isCollapsed ? item.label : ''}">
+                        <i class="material-icons-outlined">${item.icon}</i>
+                        <span>${item.label}</span>
+                    </li>
+                `).join('');
+
+                this.elements.menuList.innerHTML = menuHtml;
+            },
+
+            renderDashboard() {
+                const today = new Date().toISOString().split('T')[0];
+
+                return `
+                    <!-- Date Filter -->
+                    <div class="date-filter-container">
+                        <div class="filter-header">
+                            <h3>📅 Bộ lọc thời gian</h3>
+                        </div>
+                        <div class="filter-controls">
+                            <div class="filter-buttons">
+                                <button class="filter-btn active" data-type="day" onclick="App.changeFilterType('day')">
+                                    <i class="material-icons-outlined">today</i>
+                                    <span>Ngày</span>
+                                </button>
+                                <button class="filter-btn" data-type="week" onclick="App.changeFilterType('week')">
+                                    <i class="material-icons-outlined">date_range</i>
+                                    <span>Tuần</span>
+                                </button>
+                                <button class="filter-btn" data-type="month" onclick="App.changeFilterType('month')">
+                                    <i class="material-icons-outlined">calendar_month</i>
+                                    <span>Tháng</span>
+                                </button>
+                                <button class="filter-btn" data-type="year" onclick="App.changeFilterType('year')">
+                                    <i class="material-icons-outlined">calendar_today</i>
+                                    <span>Năm</span>
+                                </button>
+                            </div>
+
+                            <div class="filter-date-picker">
+                                <input type="date" id="filterDate" value="${today}" onchange="App.applyDateFilter()" class="date-input">
+                                <button onclick="App.resetFilter()" class="btn-reset">
+                                    <i class="material-icons-outlined">refresh</i>
+                                    Reset
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Overview Cards -->
+                    <div id="overview-cards"></div>
+
+                    <!-- Charts Grid -->
+                    <div class="charts-grid">
+                        <div class="chart-card">
+                            <div class="chart-header">
+                                <h3>🏆 Top 5 Khách hàng</h3>
+                            </div>
+                            <div id="top-customers"></div>
+                        </div>
+
+                        <div class="chart-card">
+                            <div class="chart-header">
+                                <h3>🛣️ Top 5 Tuyến đường</h3>
+                            </div>
+                            <div id="top-routes"></div>
+                        </div>
+
+                        <div class="chart-card">
+                            <div class="chart-header">
+                                <h3>🚚 Top 5 Xe doanh thu cao</h3>
+                            </div>
+                            <div id="top-vehicles"></div>
+                        </div>
+
+                        <div class="chart-card">
+                            <div class="chart-header">
+                                <h3>⚠️ Top 5 Xe doanh thu thấp</h3>
+                            </div>
+                            <div id="bottom-vehicles"></div>
+                        </div>
+                    </div>
+                `;
+            },
+
+            renderOverviewCards(data) {
+                return `
+                    <div class="stats-container">
+                        <div class="stat-card">
+                            <div class="stat-info">
+                                <h3>${data.soChuyen.toLocaleString('vi-VN')}</h3>
+                                <span>Số lượng chuyến đi</span>
+                            </div>
+                            <div class="stat-icon" style="background: #e3f2fd; color: #2962ff;">
+                                <i class="material-icons-outlined">local_shipping</i>
+                            </div>
+                        </div>
+
+                        <div class="stat-card">
+                            <div class="stat-info">
+                                <h3>${data.soXe.toLocaleString('vi-VN')}</h3>
+                                <span>Số lượng xe sử dụng</span>
+                            </div>
+                            <div class="stat-icon" style="background: #e8f5e9; color: #2e7d32;">
+                                <i class="material-icons-outlined">directions_car</i>
+                            </div>
+                        </div>
+
+                        <div class="stat-card">
+                            <div class="stat-info">
+                                <h3>${data.doanhThu.toLocaleString('vi-VN')} ₫</h3>
+                                <span>Tổng doanh thu</span>
+                            </div>
+                            <div class="stat-icon" style="background: #fff3e0; color: #ef6c00;">
+                                <i class="material-icons-outlined">attach_money</i>
+                            </div>
+                        </div>
+
+                        <div class="stat-card">
+                            <div class="stat-info">
+                                <h3>${data.soKhachHang.toLocaleString('vi-VN')}</h3>
+                                <span>Số khách hàng phục vụ</span>
+                            </div>
+                            <div class="stat-icon" style="background: #fce4ec; color: #c2185b;">
+                                <i class="material-icons-outlined">people</i>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            },
+
+            showProgress(percent = 0) {
+                this.elements.progressBar.classList.add('active');
+                this.elements.progressBarInner.style.width = percent + '%';
+            },
+
+            hideProgress() {
+                this.elements.progressBarInner.style.width = '100%';
+                setTimeout(() => {
+                    this.elements.progressBar.classList.remove('active');
+                    this.elements.progressBarInner.style.width = '0%';
+                }, 300);
+            }
+        };
+
+        // ============================================
+        // MAIN APPLICATION
+        // ============================================
+        const App = {
+            currentFilter: {
+                type: 'day',
+                date: new Date().toISOString().split('T')[0]
+            },
+
+            init() {
+                UIComponents.init();
+                this._setupEventListeners();
+                UIComponents.renderMenu();
+                this.navigate(CONFIG.ui.defaultTab);
+                this._checkLayout();
+            },
+
+            _setupEventListeners() {
+                window.addEventListener('resize', () => this._checkLayout());
+                UIComponents.elements.overlay.addEventListener('click', () => this._closeMobileSidebar());
+            },
+
+            _checkLayout() {
+                UIComponents.state.isMobile = window.innerWidth <= CONFIG.ui.mobileBreakpoint;
+            },
+
+            navigate(pageId) {
+                UIComponents.state.activeTab = pageId;
+                UIComponents.renderMenu();
+
+                const menuItem = CONFIG.menuItems.find(item => item.id === pageId);
+                if (menuItem && UIComponents.elements.breadcrumb) {
+                    UIComponents.elements.breadcrumb.textContent = menuItem.label;
+                }
+
+                if (pageId === 'overview') {
+                    this._loadDashboardPage();
+                } else {
+                    UIComponents.elements.mainContent.innerHTML = `
+                        <div style="text-align: center; padding: 60px 20px;">
+                            <i class="material-icons-outlined" style="font-size: 80px; color: #ccc;">construction</i>
+                            <h2 style="margin-top: 20px; color: #666;">Đang phát triển</h2>
+                            <p style="color: #999;">Module "${menuItem.label}" đang được xây dựng...</p>
+                        </div>
+                    `;
+                }
+
+                if (UIComponents.state.isMobile) {
+                    this._closeMobileSidebar();
+                }
+            },
+
+            async _loadDashboardPage() {
+                UIComponents.elements.mainContent.innerHTML = UIComponents.renderDashboard();
+                await this.loadAllDashboardData();
+            },
+
+            async loadAllDashboardData() {
+                try {
+                    UIComponents.showProgress(10);
+
+                    const allData = await ApiClient.getAllDashboardData(this.currentFilter);
+                    UIComponents.showProgress(80);
+
+                    if (allData.success) {
+                        this._updateOverviewCards(allData.data.overview);
+                        this._updateTopCustomers(allData.data.topCustomers);
+                        this._updateTopRoutes(allData.data.topRoutes);
+                        this._updateTopVehicles(allData.data.topVehicles);
+                        this._updateBottomVehicles(allData.data.bottomVehicles);
+                    }
+
+                    UIComponents.hideProgress();
+                } catch (error) {
+                    console.error('[App] Error loading dashboard data:', error);
+                    UIComponents.hideProgress();
+                    alert('Không thể tải dữ liệu dashboard. Vui lòng thử lại.');
+                }
+            },
+
+            _updateOverviewCards(data) {
+                const container = document.getElementById('overview-cards');
+                if (container) {
+                    container.innerHTML = UIComponents.renderOverviewCards(data);
+                }
+            },
+
+            _updateTopCustomers(data) {
+                const container = document.getElementById('top-customers');
+                if (container) {
+                    container.innerHTML = '<div id="chart-top-customers" class="chart-container"></div>';
+                    setTimeout(() => {
+                        ChartUtils.renderTopCustomersChart('chart-top-customers', data);
+                    }, 100);
+                }
+            },
+
+            _updateTopRoutes(data) {
+                const container = document.getElementById('top-routes');
+                if (container) {
+                    container.innerHTML = '<div id="chart-top-routes" class="chart-container"></div>';
+                    setTimeout(() => {
+                        ChartUtils.renderTopRoutesChart('chart-top-routes', data);
+                    }, 100);
+                }
+            },
+
+            _updateTopVehicles(data) {
+                const container = document.getElementById('top-vehicles');
+                if (container) {
+                    container.innerHTML = '<div id="chart-top-vehicles" class="chart-container"></div>';
+                    setTimeout(() => {
+                        ChartUtils.renderTopVehiclesChart('chart-top-vehicles', data);
+                    }, 100);
+                }
+            },
+
+            _updateBottomVehicles(data) {
+                const container = document.getElementById('bottom-vehicles');
+                if (container) {
+                    container.innerHTML = '<div id="chart-bottom-vehicles" class="chart-container"></div>';
+                    setTimeout(() => {
+                        ChartUtils.renderBottomVehiclesChart('chart-bottom-vehicles', data);
+                    }, 100);
+                }
+            },
+
+            changeFilterType(type) {
+                this.currentFilter.type = type;
+
+                document.querySelectorAll('.filter-btn').forEach(btn => {
+                    if (btn.dataset.type === type) {
+                        btn.classList.add('active');
+                    } else {
+                        btn.classList.remove('active');
+                    }
+                });
+
+                this.loadAllDashboardData();
+            },
+
+            applyDateFilter() {
+                const dateInput = document.getElementById('filterDate');
+                if (dateInput) {
+                    this.currentFilter.date = dateInput.value;
+                    this.loadAllDashboardData();
+                }
+            },
+
+            resetFilter() {
+                this.currentFilter.type = 'day';
+                this.currentFilter.date = new Date().toISOString().split('T')[0];
+
+                const dateInput = document.getElementById('filterDate');
+                if (dateInput) {
+                    dateInput.value = this.currentFilter.date;
+                }
+
+                document.querySelectorAll('.filter-btn').forEach(btn => {
+                    if (btn.dataset.type === 'day') {
+                        btn.classList.add('active');
+                    } else {
+                        btn.classList.remove('active');
+                    }
+                });
+
+                this.loadAllDashboardData();
+            },
+
+            toggleSidebar() {
+                if (UIComponents.state.isMobile) {
+                    UIComponents.elements.sidebar.classList.toggle('mobile-open');
+                    UIComponents.elements.overlay.classList.toggle('active');
+                } else {
+                    UIComponents.state.isCollapsed = !UIComponents.state.isCollapsed;
+
+                    if (UIComponents.state.isCollapsed) {
+                        UIComponents.elements.sidebar.classList.add('collapsed');
+                        UIComponents.elements.mainWrapper.classList.add('expanded');
+                    } else {
+                        UIComponents.elements.sidebar.classList.remove('collapsed');
+                        UIComponents.elements.mainWrapper.classList.remove('expanded');
+                    }
+
+                    UIComponents.renderMenu();
+                }
+            },
+
+            _closeMobileSidebar() {
+                UIComponents.elements.sidebar.classList.remove('mobile-open');
+                UIComponents.elements.overlay.classList.remove('active');
+            }
+        };
+
+        // Start application
+        document.addEventListener('DOMContentLoaded', () => {
+            App.init();
+        });
+    </script>
+</body>
+</html>

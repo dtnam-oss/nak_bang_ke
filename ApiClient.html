@@ -1,0 +1,166 @@
+<script>
+/**
+ * API_CLIENT.HTML
+ * Module xử lý tất cả API calls từ client đến server
+ * Sử dụng google.script.run với Promise wrapper
+ */
+
+const ApiClient = {
+
+  /**
+   * Wrapper cho google.script.run thành Promise
+   * @param {string} functionName - Tên hàm server-side
+   * @param {Array} args - Arguments cho hàm
+   * @return {Promise} Promise resolve với result hoặc reject với error
+   */
+  _callServerFunction: function(functionName, ...args) {
+    return new Promise((resolve, reject) => {
+      google.script.run
+        .withSuccessHandler(resolve)
+        .withFailureHandler(reject)
+        [functionName](...args);
+    });
+  },
+
+  /**
+   * Lấy thống kê dashboard từ BigQuery
+   * @return {Promise<Object>} Dashboard stats
+   */
+  getDashboardStats: async function() {
+    try {
+      console.log('[API] Fetching dashboard stats...');
+      const result = await this._callServerFunction('getDashboardStats');
+
+      if (result.error || !result.success) {
+        throw new Error(result.message || 'Unknown error');
+      }
+
+      console.log('[API] Dashboard stats received:', result.data);
+      return result.data;
+
+    } catch (error) {
+      console.error('[API] Error fetching dashboard stats:', error);
+      throw error;
+    }
+  },
+
+  /**
+   * ===================================================================
+   * NEW DASHBOARD APIs
+   * ===================================================================
+   */
+
+  /**
+   * Lấy TẤT CẢ dữ liệu dashboard (RECOMMENDED - 1 call duy nhất!)
+   * @param {Object} filter - { type: 'day'|'week'|'month'|'year', date: 'YYYY-MM-DD' }
+   * @return {Promise<Object>} All dashboard data
+   */
+  getAllDashboardData: async function(filter) {
+    try {
+      console.log('[API] Fetching all dashboard data...', filter);
+      const result = await this._callServerFunction('getAllDashboardData', filter);
+
+      if (result.error || !result.success) {
+        throw new Error(result.message || 'Unknown error');
+      }
+
+      console.log('[API] All data received:', result.data);
+      return result.data;
+    } catch (error) {
+      console.error('[API] Error fetching all dashboard data:', error);
+      throw error;
+    }
+  },
+
+  /**
+   * Lấy chỉ số tổng quan (4 cards)
+   * @param {Object} filter - Date filter
+   * @return {Promise<Object>} Overview metrics
+   */
+  getOverviewMetrics: async function(filter) {
+    try {
+      console.log('[API] Fetching overview metrics...');
+      const result = await this._callServerFunction('getOverviewMetrics', filter);
+      return result.data;
+    } catch (error) {
+      console.error('[API] Error getting overview:', error);
+      throw error;
+    }
+  },
+
+  /**
+   * Lấy top 10 khách hàng
+   * @param {Object} filter - Date filter
+   * @return {Promise<Array>} Top customers
+   */
+  getTopCustomers: async function(filter) {
+    try {
+      const result = await this._callServerFunction('getTopCustomers', filter);
+      return result.data;
+    } catch (error) {
+      console.error('[API] Error getting customers:', error);
+      throw error;
+    }
+  },
+
+  /**
+   * Lấy top 10 tuyến
+   * @param {Object} filter - Date filter
+   * @return {Promise<Array>} Top routes
+   */
+  getTopRoutes: async function(filter) {
+    try {
+      const result = await this._callServerFunction('getTopRoutes', filter);
+      return result.data;
+    } catch (error) {
+      console.error('[API] Error getting routes:', error);
+      throw error;
+    }
+  },
+
+  /**
+   * Lấy doanh thu theo loại tuyến
+   * @param {Object} filter - Date filter
+   * @return {Promise<Array>} Revenue by route type
+   */
+  getRevenueByRouteType: async function(filter) {
+    try {
+      const result = await this._callServerFunction('getRevenueByRouteType', filter);
+      return result.data;
+    } catch (error) {
+      console.error('[API] Error getting revenue by route type:', error);
+      throw error;
+    }
+  },
+
+  /**
+   * Lấy top 10 xe cao nhất
+   * @param {Object} filter - Date filter
+   * @return {Promise<Array>} Top vehicles
+   */
+  getTopVehicles: async function(filter) {
+    try {
+      const result = await this._callServerFunction('getTopVehicles', filter);
+      return result.data;
+    } catch (error) {
+      console.error('[API] Error getting top vehicles:', error);
+      throw error;
+    }
+  },
+
+  /**
+   * Lấy top 10 xe thấp nhất
+   * @param {Object} filter - Date filter
+   * @return {Promise<Array>} Bottom vehicles
+   */
+  getBottomVehicles: async function(filter) {
+    try {
+      const result = await this._callServerFunction('getBottomVehicles', filter);
+      return result.data;
+    } catch (error) {
+      console.error('[API] Error getting bottom vehicles:', error);
+      throw error;
+    }
+  }
+};
+</script>

@@ -1,0 +1,364 @@
+<script>
+/**
+ * PERFORMANCE_UTILS.HTML
+ * Utilities for improving performance and UX
+ */
+
+const PerformanceUtils = {
+
+  // Progress bar elements
+  progressContainer: null,
+  progressBar: null,
+
+  // Cache configuration
+  cache: {},
+  cacheTimeout: 10 * 60 * 1000, // 10 minutes
+  persistentCacheKey: 'dashboard_cache_v1',
+  maxCacheSize: 20, // Maximum cache entries
+
+  /**
+   * Initialize performance utilities
+   */
+  init: function() {
+    this.progressContainer = document.getElementById('progressBar');
+    this.progressBar = this.progressContainer?.querySelector('.progress-bar');
+    this.loadCacheFromStorage();
+    this.cleanupOldCache();
+  },
+
+  /**
+   * Show progress bar
+   */
+  showProgress: function() {
+    if (this.progressContainer) {
+      this.progressContainer.classList.add('active');
+      this.setProgress(0);
+    }
+  },
+
+  /**
+   * Hide progress bar
+   */
+  hideProgress: function() {
+    if (this.progressContainer) {
+      this.setProgress(100);
+      setTimeout(() => {
+        this.progressContainer.classList.remove('active');
+      }, 300);
+    }
+  },
+
+  /**
+   * Set progress bar percentage
+   */
+  setProgress: function(percent) {
+    if (this.progressBar) {
+      this.progressBar.style.width = percent + '%';
+    }
+  },
+
+  /**
+   * Animate progress from start to end
+   */
+  animateProgress: function(start, end, duration) {
+    const startTime = performance.now();
+    const range = end - start;
+
+    const animate = (currentTime) => {
+      const elapsed = currentTime - startTime;
+      const progress = Math.min(elapsed / duration, 1);
+      const currentValue = start + (range * progress);
+
+      this.setProgress(currentValue);
+
+      if (progress < 1) {
+        requestAnimationFrame(animate);
+      }
+    };
+
+    requestAnimationFrame(animate);
+  },
+
+  /**
+   * Load cache from localStorage
+   */
+  loadCacheFromStorage: function() {
+    try {
+      const stored = localStorage.getItem(this.persistentCacheKey);
+      if (stored) {
+        this.cache = JSON.parse(stored);
+      }
+    } catch (error) {
+      console.warn('[Cache] Failed to load from storage:', error);
+      this.cache = {};
+    }
+  },
+
+  /**
+   * Save cache to localStorage
+   */
+  saveCacheToStorage: function() {
+    try {
+      localStorage.setItem(this.persistentCacheKey, JSON.stringify(this.cache));
+    } catch (error) {
+      console.warn('[Cache] Failed to save to storage:', error);
+      if (error.name === 'QuotaExceededError') {
+        this.cache = {};
+        localStorage.removeItem(this.persistentCacheKey);
+      }
+    }
+  },
+
+  /**
+   * Clean up old cache entries
+   */
+  cleanupOldCache: function() {
+    const now = Date.now();
+    let changed = false;
+
+    Object.keys(this.cache).forEach(key => {
+      const entry = this.cache[key];
+      if (!entry || (now - entry.timestamp) > this.cacheTimeout) {
+        delete this.cache[key];
+        changed = true;
+      }
+    });
+
+    if (changed) {
+      this.saveCacheToStorage();
+    }
+  },
+
+  /**
+   * Enforce cache size limit (LRU eviction)
+   */
+  enforceCacheLimit: function() {
+    const entries = Object.entries(this.cache);
+    if (entries.length > this.maxCacheSize) {
+      entries.sort((a, b) => a[1].timestamp - b[1].timestamp);
+      const toRemove = entries.slice(0, entries.length - this.maxCacheSize);
+      toRemove.forEach(([key]) => delete this.cache[key]);
+    }
+  },
+
+  /**
+   * Cache data with key
+   */
+  setCache: function(key, data) {
+    this.cache[key] = {
+      data: data,
+      timestamp: Date.now(),
+      hits: 0
+    };
+
+    this.enforceCacheLimit();
+    this.saveCacheToStorage();
+  },
+
+  /**
+   * Get cached data if valid
+   */
+  getCache: function(key) {
+    const cached = this.cache[key];
+    if (!cached) return null;
+
+    const age = Date.now() - cached.timestamp;
+    if (age > this.cacheTimeout) {
+      delete this.cache[key];
+      this.saveCacheToStorage();
+      return null;
+    }
+
+    cached.hits = (cached.hits || 0) + 1;
+    cached.lastAccess = Date.now();
+    this.saveCacheToStorage();
+
+    return cached.data;
+  },
+
+  /**
+   * Clear cache
+   */
+  clearCache: function(key) {
+    if (key) {
+      delete this.cache[key];
+    } else {
+      this.cache = {};
+    }
+    this.saveCacheToStorage();
+  },
+
+  /**
+   * Clear all expired cache
+   */
+  clearExpiredCache: function() {
+    this.cleanupOldCache();
+  },
+
+  /**
+   * Get cache statistics
+   */
+  getCacheStats: function() {
+    const entries = Object.values(this.cache);
+    return {
+      totalEntries: entries.length,
+      totalHits: entries.reduce((sum, e) => sum + (e.hits || 0), 0),
+      oldestEntry: entries.length > 0 ? Math.min(...entries.map(e => e.timestamp)) : null,
+      newestEntry: entries.length > 0 ? Math.max(...entries.map(e => e.timestamp)) : null,
+      cacheSize: new Blob([JSON.stringify(this.cache)]).size
+    };
+  },
+
+  /**
+   * Generate cache key from filter
+   */
+  getCacheKey: function(filter) {
+    return `${filter.type}_${filter.date}`;
+  },
+
+  /**
+   * Prefetch data for likely next filters
+   */
+  prefetchLikelyFilters: function(currentFilter, fetchFunction) {
+    const prefetchKeys = this.getPrefetchCandidates(currentFilter);
+
+    prefetchKeys.forEach((filter, index) => {
+      const key = this.getCacheKey(filter);
+      if (!this.getCache(key)) {
+        setTimeout(() => {
+          fetchFunction(filter).then(data => {
+            this.setCache(key, data);
+          }).catch(() => {});
+        }, (index + 1) * 1000);
+      }
+    });
+  },
+
+  /**
+   * Get filter candidates for prefetching
+   */
+  getPrefetchCandidates: function(currentFilter) {
+    const candidates = [];
+    const currentDate = new Date(currentFilter.date);
+
+    if (currentFilter.type === 'day') {
+      const tomorrow = new Date(currentDate);
+      tomorrow.setDate(tomorrow.getDate() + 1);
+      candidates.push({
+        type: 'day',
+        date: tomorrow.toISOString().split('T')[0]
+      });
+
+      const yesterday = new Date(currentDate);
+      yesterday.setDate(yesterday.getDate() - 1);
+      candidates.push({
+        type: 'day',
+        date: yesterday.toISOString().split('T')[0]
+      });
+
+      candidates.push({
+        type: 'week',
+        date: currentFilter.date
+      });
+    }
+
+    if (currentFilter.type === 'week') {
+      candidates.push({
+        type: 'month',
+        date: currentFilter.date
+      });
+    }
+
+    return candidates;
+  },
+
+  /**
+   * Debounce function
+   */
+  debounce: function(func, wait) {
+    let timeout;
+    return function executedFunction(...args) {
+      const later = () => {
+        clearTimeout(timeout);
+        func(...args);
+      };
+      clearTimeout(timeout);
+      timeout = setTimeout(later, wait);
+    };
+  },
+
+  /**
+   * Throttle function
+   */
+  throttle: function(func, limit) {
+    let inThrottle;
+    return function(...args) {
+      if (!inThrottle) {
+        func.apply(this, args);
+        inThrottle = true;
+        setTimeout(() => inThrottle = false, limit);
+      }
+    };
+  },
+
+  /**
+   * Measure performance
+   */
+  measurePerformance: function(name, func) {
+    const start = performance.now();
+    const result = func();
+    const end = performance.now();
+    const duration = end - start;
+
+    if (duration > 100) {
+      console.warn(`[Performance] ${name} took ${duration.toFixed(2)}ms`);
+    }
+
+    return result;
+  },
+
+  /**
+   * Lazy load images
+   */
+  lazyLoadImages: function() {
+    const images = document.querySelectorAll('img[data-src]');
+
+    const imageObserver = new IntersectionObserver((entries, observer) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          const img = entry.target;
+          img.src = img.dataset.src;
+          img.removeAttribute('data-src');
+          observer.unobserve(img);
+        }
+      });
+    });
+
+    images.forEach(img => imageObserver.observe(img));
+  },
+
+  /**
+   * Request idle callback polyfill
+   */
+  requestIdleCallback: function(callback) {
+    if ('requestIdleCallback' in window) {
+      return window.requestIdleCallback(callback);
+    }
+    return setTimeout(callback, 1);
+  },
+
+  /**
+   * Batch updates to reduce reflows
+   */
+  batchUpdate: function(updates) {
+    requestAnimationFrame(() => {
+      updates.forEach(update => update());
+    });
+  }
+};
+
+// Initialize on load
+document.addEventListener('DOMContentLoaded', () => {
+  PerformanceUtils.init();
+});
+</script>

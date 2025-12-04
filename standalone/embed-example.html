@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NAK Logistics - Iframe Embedding Example</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 40px 20px;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .header {
+            text-align: center;
+            color: white;
+            margin-bottom: 30px;
+        }
+
+        .header h1 {
+            font-size: 36px;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
+        }
+
+        .header p {
+            font-size: 18px;
+            opacity: 0.9;
+        }
+
+        .iframe-container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            padding: 10px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .iframe-header {
+            background: linear-gradient(90deg, #2962ff, #00bfa5);
+            padding: 15px 20px;
+            border-radius: 12px 12px 0 0;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .iframe-dots {
+            display: flex;
+            gap: 8px;
+        }
+
+        .iframe-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: rgba(255,255,255,0.3);
+        }
+
+        .iframe-dot:nth-child(1) { background: #ff5f56; }
+        .iframe-dot:nth-child(2) { background: #ffbd2e; }
+        .iframe-dot:nth-child(3) { background: #27c93f; }
+
+        .iframe-title {
+            color: white;
+            font-size: 14px;
+            font-weight: 500;
+            flex: 1;
+            text-align: center;
+        }
+
+        .dashboard-iframe {
+            width: 100%;
+            height: calc(100vh - 200px);
+            min-height: 600px;
+            border: none;
+            display: block;
+            background: #f5f7fa;
+        }
+
+        .controls {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+
+        .controls h3 {
+            margin-bottom: 15px;
+            color: #333;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-secondary {
+            background: #e0e0e0;
+            color: #333;
+        }
+
+        .btn-secondary:hover {
+            background: #d0d0d0;
+        }
+
+        .info-box {
+            background: #e3f2fd;
+            border-left: 4px solid #2962ff;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 20px;
+        }
+
+        .info-box h4 {
+            color: #2962ff;
+            margin-bottom: 10px;
+        }
+
+        .info-box code {
+            background: white;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+            color: #d32f2f;
+        }
+
+        @media (max-width: 768px) {
+            body {
+                padding: 20px 10px;
+            }
+
+            .header h1 {
+                font-size: 24px;
+            }
+
+            .header p {
+                font-size: 14px;
+            }
+
+            .dashboard-iframe {
+                height: calc(100vh - 300px);
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🚚 NAK Logistics Dashboard</h1>
+            <p>Ví dụ nhúng Dashboard qua iframe</p>
+        </div>
+
+        <div class="controls">
+            <h3>⚙️ Điều khiển iframe</h3>
+            <div class="button-group">
+                <button class="btn btn-primary" onclick="reloadIframe()">
+                    🔄 Reload Dashboard
+                </button>
+                <button class="btn btn-secondary" onclick="toggleFullscreen()">
+                    ⛶ Fullscreen
+                </button>
+                <button class="btn btn-secondary" onclick="openNewTab()">
+                    🔗 Mở tab mới
+                </button>
+            </div>
+
+            <div class="info-box">
+                <h4>📌 Cách nhúng vào website của bạn:</h4>
+                <p>Sao chép đoạn code HTML sau vào website của bạn:</p>
+                <pre style="background: white; padding: 10px; border-radius: 4px; margin-top: 10px; overflow-x: auto;"><code>&lt;iframe
+    src="http://localhost:3000/index.html"
+    width="100%"
+    height="800px"
+    frameborder="0"
+    style="border: none; border-radius: 8px;"
+    allow="fullscreen"
+&gt;&lt;/iframe&gt;</code></pre>
+            </div>
+        </div>
+
+        <div class="iframe-container">
+            <div class="iframe-header">
+                <div class="iframe-dots">
+                    <div class="iframe-dot"></div>
+                    <div class="iframe-dot"></div>
+                    <div class="iframe-dot"></div>
+                </div>
+                <div class="iframe-title">NAK Logistics Dashboard - http://localhost:3000</div>
+            </div>
+
+            <iframe
+                id="dashboardIframe"
+                class="dashboard-iframe"
+                src="http://localhost:3000/index.html"
+                frameborder="0"
+                allow="fullscreen"
+                title="NAK Logistics Dashboard"
+            ></iframe>
+        </div>
+    </div>
+
+    <script>
+        // Reload iframe
+        function reloadIframe() {
+            const iframe = document.getElementById('dashboardIframe');
+            iframe.src = iframe.src;
+        }
+
+        // Toggle fullscreen
+        function toggleFullscreen() {
+            const iframe = document.getElementById('dashboardIframe');
+            if (!document.fullscreenElement) {
+                iframe.requestFullscreen().catch(err => {
+                    alert(`Error attempting to enable fullscreen: ${err.message}`);
+                });
+            } else {
+                document.exitFullscreen();
+            }
+        }
+
+        // Open in new tab
+        function openNewTab() {
+            const iframe = document.getElementById('dashboardIframe');
+            window.open(iframe.src, '_blank');
+        }
+
+        // Listen to messages from iframe (optional - for advanced interactions)
+        window.addEventListener('message', function(event) {
+            // Verify origin for security
+            if (event.origin !== 'http://localhost:3000') return;
+
+            console.log('Message from iframe:', event.data);
+
+            // Handle messages from dashboard
+            // Example: event.data.action === 'navigate'
+        });
+
+        // Send message to iframe (optional)
+        function sendMessageToIframe(message) {
+            const iframe = document.getElementById('dashboardIframe');
+            iframe.contentWindow.postMessage(message, 'http://localhost:3000');
+        }
+
+        // Example: Send filter change to iframe
+        // sendMessageToIframe({ action: 'setFilter', data: { type: 'month', date: '2024-01-01' } });
+    </script>
+</body>
+</html>

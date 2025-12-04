@@ -1,0 +1,648 @@
+<script>
+/**
+ * UI_COMPONENTS.HTML
+ * Module quản lý các UI components và rendering logic
+ * Tách biệt presentation logic khỏi business logic
+ */
+
+const UIComponents = {
+
+  // Cache DOM elements
+  elements: {
+    sidebar: null,
+    mainWrapper: null,
+    menuList: null,
+    mainContent: null,
+    overlay: null,
+    breadcrumb: null
+  },
+
+  // UI State
+  state: {
+    activeTab: CLIENT_CONFIG.ui.defaultTab,
+    isCollapsed: false,
+    isMobile: false
+  },
+
+  /**
+   * Initialize và cache tất cả DOM elements
+   */
+  init: function() {
+    this.elements.sidebar = document.getElementById('sidebar');
+    this.elements.mainWrapper = document.getElementById('mainWrapper');
+    this.elements.menuList = document.getElementById('menuList');
+    this.elements.mainContent = document.getElementById('mainContent');
+    this.elements.overlay = document.getElementById('overlay');
+    this.elements.breadcrumb = document.querySelector('#breadcrumb span');
+
+    this.state.isMobile = window.innerWidth <= CLIENT_CONFIG.ui.mobileBreakpoint;
+  },
+
+  /**
+   * Render menu items vào sidebar
+   */
+  renderMenu: function() {
+    const menuHtml = CLIENT_CONFIG.menuItems.map(item => `
+      <li class="menu-item ${item.id === this.state.activeTab ? 'active' : ''}"
+          onclick="App.navigate('${item.id}')"
+          title="${this.state.isCollapsed ? item.label : ''}">
+        <i class="material-icons-outlined">${item.icon}</i>
+        <span>${item.label}</span>
+      </li>
+    `).join('');
+
+    this.elements.menuList.innerHTML = menuHtml;
+  },
+
+  /**
+   * ===================================================================
+   * NEW DASHBOARD COMPONENTS
+   * ===================================================================
+   */
+
+  /**
+   * Render BỘ LỌC NGÀY/TUẦN/THÁNG/NĂM
+   */
+  renderDateFilter: function() {
+    const today = new Date().toISOString().split('T')[0];
+
+    return `
+      <div class="date-filter-container">
+        <div class="filter-header">
+          <h3>📅 Bộ lọc thời gian</h3>
+        </div>
+        <div class="filter-controls">
+          <div class="filter-buttons">
+            <button class="filter-btn active" data-type="day" onclick="App.changeFilterType('day')">
+              <i class="material-icons-outlined">today</i>
+              <span>Ngày</span>
+            </button>
+            <button class="filter-btn" data-type="week" onclick="App.changeFilterType('week')">
+              <i class="material-icons-outlined">date_range</i>
+              <span>Tuần</span>
+            </button>
+            <button class="filter-btn" data-type="month" onclick="App.changeFilterType('month')">
+              <i class="material-icons-outlined">calendar_month</i>
+              <span>Tháng</span>
+            </button>
+            <button class="filter-btn" data-type="year" onclick="App.changeFilterType('year')">
+              <i class="material-icons-outlined">calendar_today</i>
+              <span>Năm</span>
+            </button>
+          </div>
+
+          <div class="filter-date-picker">
+            <input type="date" id="filterDate" value="${today}" onchange="App.applyDateFilter()"
+                   class="date-input">
+            <button onclick="App.resetFilter()" class="btn-reset">
+              <i class="material-icons-outlined">refresh</i>
+              Reset
+            </button>
+          </div>
+        </div>
+      </div>
+    `;
+  },
+
+  /**
+   * Render 4 CARDS TỔNG QUAN
+   */
+  renderOverviewCards: function(data) {
+    if (!data) {
+      data = { soChuyen: 0, soXe: 0, doanhThu: 0, soKhachHang: 0 };
+    }
+
+    return `
+      <div class="stats-container">
+        <!-- Card 1: Số chuyến đi -->
+        <div class="stat-card">
+          <div class="stat-info">
+            <h3 id="metric-trips">${data.soChuyen.toLocaleString('vi-VN')}</h3>
+            <span>Số lượng chuyến đi</span>
+          </div>
+          <div class="stat-icon" style="background: #e3f2fd; color: #2962ff;">
+            <i class="material-icons-outlined">local_shipping</i>
+          </div>
+        </div>
+
+        <!-- Card 2: Số xe sử dụng -->
+        <div class="stat-card">
+          <div class="stat-info">
+            <h3 id="metric-vehicles">${data.soXe.toLocaleString('vi-VN')}</h3>
+            <span>Số lượng xe sử dụng</span>
+          </div>
+          <div class="stat-icon" style="background: #e8f5e9; color: #2e7d32;">
+            <i class="material-icons-outlined">directions_car</i>
+          </div>
+        </div>
+
+        <!-- Card 3: Doanh thu -->
+        <div class="stat-card">
+          <div class="stat-info">
+            <h3 id="metric-revenue">${data.doanhThu.toLocaleString('vi-VN')} ₫</h3>
+            <span>Tổng doanh thu</span>
+          </div>
+          <div class="stat-icon" style="background: #fff3e0; color: #ef6c00;">
+            <i class="material-icons-outlined">attach_money</i>
+          </div>
+        </div>
+
+        <!-- Card 4: Khách hàng -->
+        <div class="stat-card">
+          <div class="stat-info">
+            <h3 id="metric-customers">${data.soKhachHang.toLocaleString('vi-VN')}</h3>
+            <span>Số khách hàng phục vụ</span>
+          </div>
+          <div class="stat-icon" style="background: #fce4ec; color: #c2185b;">
+            <i class="material-icons-outlined">people</i>
+          </div>
+        </div>
+      </div>
+    `;
+  },
+
+  /**
+   * Render skeleton loading cho overview cards
+   */
+  renderSkeletonCards: function() {
+    return `
+      <div class="stats-container">
+        <div class="stat-card"><div class="skeleton skeleton-card"></div></div>
+        <div class="stat-card"><div class="skeleton skeleton-card"></div></div>
+        <div class="stat-card"><div class="skeleton skeleton-card"></div></div>
+        <div class="stat-card"><div class="skeleton skeleton-card"></div></div>
+      </div>
+    `;
+  },
+
+  /**
+   * Render skeleton loading cho charts
+   */
+  renderSkeletonChart: function() {
+    return '<div class="skeleton skeleton-chart"></div>';
+  },
+
+  /**
+   * Render CHART TOP KHÁCH HÀNG
+   */
+  renderTopCustomersTable: function(customers) {
+    return '<div id="chart-top-customers" class="chart-container"></div>';
+  },
+
+  /**
+   * Render CHART TOP TUYẾN
+   */
+  renderTopRoutesTable: function(routes) {
+    return '<div id="chart-top-routes" class="chart-container"></div>';
+  },
+
+  /**
+   * Render CHART TOP XE (cao hoặc thấp)
+   */
+  renderTopVehiclesTable: function(vehicles, isBottom) {
+    const chartId = isBottom ? 'chart-bottom-vehicles' : 'chart-top-vehicles';
+    return `<div id="${chartId}" class="chart-container"></div>`;
+  },
+
+  /**
+   * Render TOÀN BỘ DASHBOARD MỚI
+   */
+  renderNewDashboard: function() {
+    return `
+      ${this.renderDateFilter()}
+
+      <div id="overview-cards">
+        ${this.renderSkeletonCards()}
+      </div>
+
+      <div class="dashboard-sections">
+        <!-- SECTION: BÁO CÁO KHÁCH HÀNG -->
+        <div class="dashboard-section">
+          <h2 class="section-title">
+            <i class="material-icons-outlined">people</i>
+            Báo cáo Khách hàng
+          </h2>
+          <div class="report-grid">
+            <div class="report-card">
+              <h3 class="report-card-title">Top 10 Khách hàng</h3>
+              <div id="top-customers" class="report-content">
+                ${this.renderSkeletonChart()}
+              </div>
+            </div>
+            <div class="report-card">
+              <h3 class="report-card-title">Top 10 Tuyến</h3>
+              <div id="top-routes" class="report-content">
+                ${this.renderSkeletonChart()}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- SECTION: BÁO CÁO XE -->
+        <div class="dashboard-section">
+          <h2 class="section-title">
+            <i class="material-icons-outlined">local_shipping</i>
+            Báo cáo Xe
+          </h2>
+          <div class="report-grid">
+            <div class="report-card">
+              <h3 class="report-card-title">Top 10 Xe doanh thu cao nhất</h3>
+              <div id="top-vehicles" class="report-content">
+                ${this.renderSkeletonChart()}
+              </div>
+            </div>
+            <div class="report-card">
+              <h3 class="report-card-title">Top 10 Xe doanh thu thấp nhất</h3>
+              <div id="bottom-vehicles" class="report-content">
+                ${this.renderSkeletonChart()}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
+  },
+
+  /**
+   * Render page "đang phát triển"
+   */
+  renderUnderConstruction: function(title) {
+    return `
+      <div class="dev-state">
+        <i class="material-icons-outlined" style="font-size: 64px; color: #e0e0e0; margin-bottom: 16px;">construction</i>
+        <h2>${title}</h2>
+        <p style="color: #888;">Tính năng <strong>"${title}"</strong> đang được phát triển.</p>
+      </div>
+    `;
+  },
+
+  renderSystemLandingPage: function() {
+    var html = '<div class="system-landing-page">';
+    html += '<div class="landing-header">';
+    html += '<h1>"Hệ thống"</h1>';
+    html += '<p>Chon module de bat dau quan ly</p>';
+    html += '</div>';
+    html += '<div class="system-modules-grid">';
+
+    html += '<div class="system-module-card" onclick="UIComponents.navigateToModule(\'https://www.appsheet.com/start/19a568a9-81d6-4152-b51c-98a8f7632562#view=chuyen_di\')">';
+    html += '<div class="module-icon" style="background: #2196f3;">';
+    html += '<i class="material-icons-outlined">local_shipping</i>';
+    html += '</div>';
+    html += '<div class="module-content">';
+    html += '<h3 class="module-title">Chuyen di</h3>';
+    html += '<p class="module-description">Quan ly va theo doi cac chuyen di</p>';
+    html += '</div>';
+    html += '<div class="module-action">';
+    html += '<i class="material-icons-outlined">arrow_forward</i>';
+    html += '</div>';
+    html += '</div>';
+
+    html += '<div class="system-module-card" onclick="UIComponents.navigateToModule(\'https://www.appsheet.com/start/xxxxx\')">';
+    html += '<div class="module-icon" style="background: #4caf50;">';
+    html += '<i class="material-icons-outlined">payments</i>';
+    html += '</div>';
+    html += '<div class="module-content">';
+    html += '<h3 class="module-title">Bang gia</h3>';
+    html += '<p class="module-description">Quan ly bang gia dich vu</p>';
+    html += '</div>';
+    html += '<div class="module-action">';
+    html += '<i class="material-icons-outlined">arrow_forward</i>';
+    html += '</div>';
+    html += '</div>';
+
+    html += '<div class="system-module-card" onclick="UIComponents.navigateToModule(\'https://www.appsheet.com/start/xxxxx\')">';
+    html += '<div class="module-icon" style="background: #ff9800;">';
+    html += '<i class="material-icons-outlined">event_note</i>';
+    html += '</div>';
+    html += '<div class="module-content">';
+    html += '<h3 class="module-title">Ke hoach</h3>';
+    html += '<p class="module-description">Lap va quan ly ke hoach van hanh</p>';
+    html += '</div>';
+    html += '<div class="module-action">';
+    html += '<i class="material-icons-outlined">arrow_forward</i>';
+    html += '</div>';
+    html += '</div>';
+
+    html += '<div class="system-module-card" onclick="UIComponents.navigateToModule(\'https://www.appsheet.com/start/xxxxx\')">';
+    html += '<div class="module-icon" style="background: #9c27b0;">';
+    html += '<i class="material-icons-outlined">directions_car</i>';
+    html += '</div>';
+    html += '<div class="module-content">';
+    html += '<h3 class="module-title">Phuong tien</h3>';
+    html += '<p class="module-description">Quan ly danh sach phuong tien</p>';
+    html += '</div>';
+    html += '<div class="module-action">';
+    html += '<i class="material-icons-outlined">arrow_forward</i>';
+    html += '</div>';
+    html += '</div>';
+
+    html += '<div class="system-module-card" onclick="UIComponents.navigateToModule(\'https://www.appsheet.com/start/xxxxx\')">';
+    html += '<div class="module-icon" style="background: #f44336;">';
+    html += '<i class="material-icons-outlined">people</i>';
+    html += '</div>';
+    html += '<div class="module-content">';
+    html += '<h3 class="module-title">Nhan vien</h3>';
+    html += '<p class="module-description">Quan ly thong tin nhan vien</p>';
+    html += '</div>';
+    html += '<div class="module-action">';
+    html += '<i class="material-icons-outlined">arrow_forward</i>';
+    html += '</div>';
+    html += '</div>';
+
+    html += '<div class="system-module-card" onclick="UIComponents.navigateToModule(\'https://www.appsheet.com/start/xxxxx\')">';
+    html += '<div class="module-icon" style="background: #00bcd4;">';
+    html += '<i class="material-icons-outlined">business</i>';
+    html += '</div>';
+    html += '<div class="module-content">';
+    html += '<h3 class="module-title">Vendor</h3>';
+    html += '<p class="module-description">Quan ly nha cung cap va doi tac</p>';
+    html += '</div>';
+    html += '<div class="module-action">';
+    html += '<i class="material-icons-outlined">arrow_forward</i>';
+    html += '</div>';
+    html += '</div>';
+
+    html += '</div>';
+    html += '<div class="landing-footer">';
+    html += '<p class="help-text">';
+    html += '<i class="material-icons-outlined">info</i>';
+    html += 'Cac module se mo trong tab moi. Dam bao trinh duyet khong chan pop-up.';
+    html += '</p>';
+    html += '</div>';
+    html += '</div>';
+
+    return html;
+  },
+
+  /**
+   * Navigate to external module URL
+   */
+  navigateToModule: function(url) {
+    if (url && url !== 'https://www.appsheet.com/start/xxxxx') {
+      window.open(url, '_blank');
+    } else {
+      alert('URL chua duoc cau hinh. Vui long cap nhat URL trong UIComponents.renderSystemLandingPage()');
+    }
+  },
+
+  /**
+   * Render Ke Toan Module with tabs
+   */
+  renderKeToanPage: function() {
+    var html = '<div class="ke-toan-module">';
+
+    html += '<div class="module-header">';
+    html += '<h1>Ke Toan</h1>';
+    html += '<p>Quan ly doi soat va bao cao tai chinh</p>';
+    html += '</div>';
+
+    html += '<div class="module-tabs">';
+    html += '<button class="tab-btn" data-tab="bao-cao" onclick="KeToanController.switchTab(\'bao-cao\')">Bao cao</button>';
+    html += '<button class="tab-btn active" data-tab="doi-soat" onclick="KeToanController.switchTab(\'doi-soat\')">Doi soat</button>';
+    html += '</div>';
+
+    html += '<div class="tab-content">';
+    html += '<div id="tab-bao-cao" class="tab-panel" style="display:none;">';
+    html += this.renderBaoCaoTab();
+    html += '</div>';
+    html += '<div id="tab-doi-soat" class="tab-panel active">';
+    html += this.renderDoiSoatTab();
+    html += '</div>';
+    html += '</div>';
+
+    html += '</div>';
+    return html;
+  },
+
+  /**
+   * Render Bao Cao tab (placeholder)
+   */
+  renderBaoCaoTab: function() {
+    var html = '<div class="under-construction">';
+    html += '<i class="material-icons-outlined" style="font-size: 64px; color: #e0e0e0;">analytics</i>';
+    html += '<h3>Bao cao</h3>';
+    html += '<p>Tinh nang dang duoc xay dung...</p>';
+    html += '</div>';
+    return html;
+  },
+
+  /**
+   * Render Doi Soat tab
+   */
+  renderDoiSoatTab: function() {
+    var html = '<div class="doi-soat-container">';
+
+    html += '<div class="filter-section">';
+    html += '<h3>Tao phien doi soat</h3>';
+
+    html += '<div class="filter-grid">';
+
+    html += '<div class="filter-item">';
+    html += '<label>Thoi gian:</label>';
+    html += '<div class="date-range">';
+    html += '<input type="date" id="doi-soat-tu-ngay" class="date-input">';
+    html += '<span>-</span>';
+    html += '<input type="date" id="doi-soat-den-ngay" class="date-input">';
+    html += '</div>';
+    html += '</div>';
+
+    html += '<div class="filter-item">';
+    html += '<label>Khach hang:</label>';
+    html += '<select id="doi-soat-khach-hang" class="filter-select">';
+    html += '<option value="">-- Chon khach hang --</option>';
+    html += '</select>';
+    html += '</div>';
+
+    html += '<div class="filter-item">';
+    html += '<label>Loai tuyen:</label>';
+    html += '<select id="doi-soat-loai-tuyen" class="filter-select">';
+    html += '<option value="">-- Tat ca --</option>';
+    html += '</select>';
+    html += '</div>';
+
+    html += '</div>';
+
+    html += '<div class="filter-actions">';
+    html += '<button class="btn-primary" onclick="KeToanController.loadDoiSoatPreview()">Xem truoc</button>';
+    html += '<button class="btn-secondary" onclick="KeToanController.resetFilters()">Reset</button>';
+    html += '</div>';
+
+    html += '</div>';
+
+    html += '<div id="preview-section" class="preview-section" style="display:none;">';
+    html += '<div id="preview-content"></div>';
+    html += '</div>';
+
+    html += '</div>';
+    return html;
+  },
+
+  /**
+   * Render preview content for Doi Soat
+   */
+  renderDoiSoatPreview: function(data) {
+    var html = '<div class="preview-card">';
+
+    html += '<div class="preview-header">';
+    html += '<h3><i class="material-icons-outlined">description</i> Ket qua doi soat</h3>';
+    html += '</div>';
+
+    html += '<div class="customer-info">';
+    html += '<h4>' + data.customer.ten_khach_hang + '</h4>';
+    html += '<p>Ma KH: ' + data.customer.ma_khach_hang + ' | Thoi gian: ' + data.filters.tu_ngay + ' - ' + data.filters.den_ngay + '</p>';
+    html += '</div>';
+
+    html += '<div class="summary-cards">';
+    html += '<div class="summary-card">';
+    html += '<div class="summary-icon" style="background: #2196F3;">';
+    html += '<i class="material-icons-outlined">local_shipping</i>';
+    html += '</div>';
+    html += '<div class="summary-info">';
+    html += '<h5>So chuyen</h5>';
+    html += '<div class="value">' + data.summary.so_chuyen + '</div>';
+    html += '</div>';
+    html += '</div>';
+
+    html += '<div class="summary-card">';
+    html += '<div class="summary-icon" style="background: #4CAF50;">';
+    html += '<i class="material-icons-outlined">payments</i>';
+    html += '</div>';
+    html += '<div class="summary-info">';
+    html += '<h5>Tong doanh thu</h5>';
+    html += '<div class="value">' + this.formatCurrency(data.summary.tong_doanh_thu) + '</div>';
+    html += '</div>';
+    html += '</div>';
+
+    html += '<div class="summary-card">';
+    html += '<div class="summary-icon" style="background: #8BC34A;">';
+    html += '<i class="material-icons-outlined">check_circle</i>';
+    html += '</div>';
+    html += '<div class="summary-info">';
+    html += '<h5>Da thanh toan</h5>';
+    html += '<div class="value">' + this.formatCurrency(data.summary.da_thanh_toan) + '</div>';
+    html += '</div>';
+    html += '</div>';
+
+    html += '<div class="summary-card">';
+    html += '<div class="summary-icon" style="background: #FF9800;">';
+    html += '<i class="material-icons-outlined">schedule</i>';
+    html += '</div>';
+    html += '<div class="summary-info">';
+    html += '<h5>Con no</h5>';
+    html += '<div class="value">' + this.formatCurrency(data.summary.con_no) + '</div>';
+    html += '</div>';
+    html += '</div>';
+    html += '</div>';
+
+    html += '<div class="data-table-container">';
+    html += '<h4>Chi tiet chuyen di (' + Math.min(10, data.trips.length) + ' chuyen dau tien)</h4>';
+    html += '<div class="table-scroll">';
+    html += '<table class="data-table">';
+    html += '<thead>';
+    html += '<tr>';
+    html += '<th>Ngay</th>';
+    html += '<th>Ma chuyen</th>';
+    html += '<th>Loai tuyen</th>';
+    html += '<th>Tuyen duong</th>';
+    html += '<th>Bien so</th>';
+    html += '<th>Doanh thu</th>';
+    html += '<th>Trang thai</th>';
+    html += '</tr>';
+    html += '</thead>';
+    html += '<tbody>';
+
+    var trips = data.trips.slice(0, 10);
+    for (var i = 0; i < trips.length; i++) {
+      var trip = trips[i];
+      html += '<tr>';
+      html += '<td>' + (trip.ngay_tao || 'N/A') + '</td>';
+      html += '<td>' + (trip.ma_chuyen_di || 'N/A') + '</td>';
+      html += '<td>' + (trip.loai_tuyen || 'N/A') + '</td>';
+      html += '<td>' + (trip.tuyen_duong || 'N/A') + '</td>';
+      html += '<td>' + (trip.bien_so_xe || 'N/A') + '</td>';
+      html += '<td>' + this.formatCurrency(parseFloat(trip.doanh_thu) || 0) + '</td>';
+      html += '<td>' + (trip.trang_thai || 'N/A') + '</td>';
+      html += '</tr>';
+    }
+
+    if (trips.length === 0) {
+      html += '<tr><td colspan="7" style="text-align: center; padding: 24px;">Khong co du lieu</td></tr>';
+    }
+
+    html += '</tbody>';
+    html += '</table>';
+    html += '</div>';
+
+    if (data.trips.length > 10) {
+      html += '<p style="margin-top: 12px; color: #666; font-size: 14px;">... va ' + (data.trips.length - 10) + ' chuyen nua</p>';
+    }
+
+    html += '</div>';
+
+    html += '<div class="export-actions">';
+    html += '<button class="btn-export btn-export-excel" onclick="KeToanController.exportDoiSoat(\'excel\')">';
+    html += '<i class="material-icons-outlined">table_chart</i>';
+    html += '<span>Xuat Excel</span>';
+    html += '</button>';
+    html += '<button class="btn-export btn-export-pdf" onclick="KeToanController.exportDoiSoat(\'pdf\')">';
+    html += '<i class="material-icons-outlined">picture_as_pdf</i>';
+    html += '<span>Xuat PDF</span>';
+    html += '</button>';
+    html += '</div>';
+
+    html += '</div>';
+    return html;
+  },
+
+  formatCurrency: function(value) {
+    if (!value) return '0 d';
+    return value.toLocaleString('vi-VN') + ' d';
+  },
+
+  /**
+   * Update số liệu lên overview cards với animation
+   */
+  updateDashboardStats: function(data) {
+    const elTotal = document.getElementById('metric-trips');
+    const elVehicles = document.getElementById('metric-vehicles');
+    const elRevenue = document.getElementById('metric-revenue');
+    const elCustomers = document.getElementById('metric-customers');
+
+    const soChuyen = parseInt(data.soChuyen) || 0;
+    const soXe = parseInt(data.soXe) || 0;
+    const doanhThu = parseFloat(data.doanhThu) || 0;
+    const soKhachHang = parseInt(data.soKhachHang) || 0;
+
+    if (elTotal && elVehicles && elRevenue && elCustomers) {
+      this._animateValue(elTotal, 0, soChuyen, 800);
+      this._animateValue(elVehicles, 0, soXe, 800);
+      this._animateValue(elRevenue, 0, doanhThu, 800, ' ₫');
+      this._animateValue(elCustomers, 0, soKhachHang, 800);
+    }
+  },
+
+  /**
+   * Animate số từ start đến end
+   */
+  _animateValue: function(element, start, end, duration, suffix = '') {
+    const range = end - start;
+    const startTime = performance.now();
+
+    const animate = (currentTime) => {
+      const elapsed = currentTime - startTime;
+      const progress = Math.min(elapsed / duration, 1);
+
+      const easeProgress = 1 - Math.pow(1 - progress, 3);
+      const currentValue = Math.floor(start + (range * easeProgress));
+
+      element.textContent = currentValue.toLocaleString('vi-VN') + suffix;
+
+      if (progress < 1) {
+        requestAnimationFrame(animate);
+      }
+    };
+
+    requestAnimationFrame(animate);
+  }
+};
+</script>

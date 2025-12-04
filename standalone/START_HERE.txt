@@ -1,0 +1,132 @@
+═══════════════════════════════════════════════════════════════════
+  🚚 NAK LOGISTICS DASHBOARD - STANDALONE VERSION
+═══════════════════════════════════════════════════════════════════
+
+✨ CHUYỂN ĐỔI HOÀN TẤT!
+
+Hệ thống đã được chuyển từ Google Apps Script sang JavaScript thuần.
+Bây giờ bạn có thể:
+
+  ✅ Chạy độc lập không cần Google Apps Script
+  ✅ Nhúng vào bất kỳ website nào qua iframe
+  ✅ Deploy lên server riêng
+  ✅ Full control về performance và hosting
+
+═══════════════════════════════════════════════════════════════════
+  📖 HƯỚNG DẪN NHANH - 3 BƯỚC
+═══════════════════════════════════════════════════════════════════
+
+1️⃣  CÀI ĐẶT:
+    npm install
+
+2️⃣  TẠO FILE CẤU HÌNH:
+    cp .env.example .env
+
+3️⃣  CHẠY SERVER:
+    npm start
+
+    ➡️  Mở browser: http://localhost:3000
+
+═══════════════════════════════════════════════════════════════════
+  📂 CÁC FILE QUAN TRỌNG
+═══════════════════════════════════════════════════════════════════
+
+📄 QUICKSTART.md       → Hướng dẫn chạy trong 5 phút
+📄 README.md           → Tài liệu đầy đủ và chi tiết
+📄 index.html          → Frontend (Dashboard UI)
+📄 server.js           → Backend API (Node.js)
+📄 embed-example.html  → Ví dụ nhúng iframe
+
+═══════════════════════════════════════════════════════════════════
+  🎯 CHẠY DEMO (KHÔNG CẦN BIGQUERY)
+═══════════════════════════════════════════════════════════════════
+
+Mặc định, dashboard chạy ở DEMO MODE với dữ liệu mẫu.
+Bạn có thể test ngay mà không cần setup BigQuery!
+
+    npm start
+    ➡️  http://localhost:3000
+
+═══════════════════════════════════════════════════════════════════
+  🔌 NHÚNG VÀO WEBSITE (IFRAME)
+═══════════════════════════════════════════════════════════════════
+
+<iframe
+    src="http://localhost:3000/index.html"
+    width="100%"
+    height="800px"
+    frameborder="0"
+    style="border: none;"
+></iframe>
+
+Xem ví dụ đầy đủ: embed-example.html
+
+═══════════════════════════════════════════════════════════════════
+  🔧 KẾT NỐI BIGQUERY THẬT (PRODUCTION MODE)
+═══════════════════════════════════════════════════════════════════
+
+1. Lấy BigQuery Service Account Key từ Google Cloud Console
+2. Lưu file key vào: ./service-account-key.json
+3. Cấu hình file .env:
+
+   BIGQUERY_PROJECT_ID=nakvi-476804
+   BIGQUERY_DATASET=nak_logistics
+   BIGQUERY_KEY_FILE=./service-account-key.json
+
+4. Sửa index.html (dòng ~235) để bật production mode
+5. Restart: npm start
+
+Xem chi tiết: README.md
+
+═══════════════════════════════════════════════════════════════════
+  🚀 DEPLOY LÊN PRODUCTION
+═══════════════════════════════════════════════════════════════════
+
+VPS/Cloud Server:
+  1. Upload code lên server
+  2. npm install --production
+  3. Cấu hình .env
+  4. pm2 start server.js
+  5. Setup Nginx reverse proxy
+  6. Cấu hình SSL/HTTPS
+
+Cloud Platforms:
+  - Google Cloud Run
+  - Heroku
+  - AWS EC2
+  - Azure App Service
+  - DigitalOcean
+
+Xem chi tiết: README.md → Deploy section
+
+═══════════════════════════════════════════════════════════════════
+  ❓ TRỢ GIÚP
+═══════════════════════════════════════════════════════════════════
+
+Lỗi thường gặp:
+  ❌ "Cannot find module" → npm install
+  ❌ "Port 3000 in use" → Đổi PORT trong .env
+  ❌ Dashboard không load → Kiểm tra Console (F12)
+
+Xem thêm: README.md → Troubleshooting
+
+═══════════════════════════════════════════════════════════════════
+  📊 FILE STRUCTURE
+═══════════════════════════════════════════════════════════════════
+
+standalone/
+├── index.html              Frontend (all-in-one file)
+├── server.js               Backend API
+├── package.json            Dependencies
+├── .env.example            Config template
+├── .env                    Your config (tạo từ .env.example)
+├── embed-example.html      Iframe example
+├── README.md               Full documentation
+├── QUICKSTART.md           5-minute guide
+└── START_HERE.txt          File này
+
+═══════════════════════════════════════════════════════════════════
+
+🎉 SẴN SÀNG! Chạy ngay: npm start
+
+═══════════════════════════════════════════════════════════════════

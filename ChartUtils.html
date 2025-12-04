@@ -1,0 +1,452 @@
+<script>
+/**
+ * CHART_UTILS.HTML
+ * Utilities for rendering ECharts visualizations
+ * Sử dụng Apache ECharts v5
+ */
+
+const ChartUtils = {
+
+  /**
+   * Render BAR CHART - Top 10 Khách hàng
+   */
+  renderTopCustomersChart: function(containerId, data) {
+    if (!data || data.length === 0) {
+      document.getElementById(containerId).innerHTML =
+        '<div class="no-data"><i class="material-icons-outlined">inbox</i><p>Không có dữ liệu</p></div>';
+      return;
+    }
+
+    const names = data.map(c => c.ten_khach_hang || c.ma_khach_hang || 'N/A');
+    const revenues = data.map(c => parseFloat(c.tong_doanh_thu) || 0);
+    const trips = data.map(c => parseInt(c.so_chuyen) || 0);
+
+    // Function to get customer color
+    const getCustomerColor = function(customerName) {
+      const name = customerName.toUpperCase();
+      if (name.includes('GHN')) return '#ff9800';
+      if (name.includes('J&T') || name.includes('JT') || name.includes('J T')) return '#f44336';
+      if (name.includes('GHTK')) return '#4caf50';
+      return '#2196f3';
+    };
+
+    // Initialize chart
+    const chartDom = document.getElementById(containerId);
+    const myChart = echarts.init(chartDom);
+
+    const option = {
+      tooltip: {
+        trigger: 'axis',
+        axisPointer: {
+          type: 'shadow'
+        },
+        formatter: function(params) {
+          let result = params[0].name + '<br/>';
+          params.forEach(param => {
+            if (param.seriesName === 'Doanh thu') {
+              result += param.marker + ' ' + param.seriesName + ': ' +
+                        param.value.toLocaleString('vi-VN') + ' ₫<br/>';
+            } else {
+              result += param.marker + ' ' + param.seriesName + ': ' +
+                        param.value.toLocaleString('vi-VN') + ' chuyến<br/>';
+            }
+          });
+          return result;
+        }
+      },
+      legend: {
+        data: ['Doanh thu', 'Số chuyến'],
+        top: 10
+      },
+      grid: {
+        left: '3%',
+        right: '4%',
+        bottom: '3%',
+        containLabel: true
+      },
+      xAxis: {
+        type: 'value',
+        axisLabel: {
+          formatter: function(value) {
+            if (value >= 1000000) {
+              return (value / 1000000).toFixed(0) + 'M';
+            }
+            return value.toLocaleString('vi-VN');
+          }
+        }
+      },
+      yAxis: {
+        type: 'category',
+        data: names,
+        inverse: true,
+        axisLabel: {
+          width: 120,
+          overflow: 'truncate',
+          fontSize: 11
+        }
+      },
+      series: [
+        {
+          name: 'Doanh thu',
+          type: 'bar',
+          data: revenues,
+          itemStyle: {
+            color: function(params) {
+              return getCustomerColor(names[params.dataIndex]);
+            },
+            borderRadius: [0, 4, 4, 0]
+          },
+          label: {
+            show: true,
+            position: 'right',
+            formatter: function(params) {
+              return (params.value / 1000000).toFixed(1) + 'M';
+            },
+            fontSize: 10
+          }
+        }
+      ]
+    };
+
+    myChart.setOption(option);
+
+    // Responsive resize
+    window.addEventListener('resize', () => myChart.resize());
+  },
+
+  /**
+   * Render PIE CHART - Top 10 Tuyến
+   */
+  renderTopRoutesChart: function(containerId, data) {
+    if (!data || data.length === 0) {
+      document.getElementById(containerId).innerHTML =
+        '<div class="no-data"><i class="material-icons-outlined">inbox</i><p>Không có dữ liệu</p></div>';
+      return;
+    }
+
+    const chartData = data.map(r => ({
+      name: r.tuyen || 'N/A',
+      value: parseFloat(r.tong_doanh_thu) || 0
+    }));
+
+    // Function to get route/customer color based on name
+    const getRouteColor = function(routeName) {
+      const name = routeName.toUpperCase();
+      if (name.includes('GHN')) return '#ff9800';
+      if (name.includes('J&T') || name.includes('JT') || name.includes('J T')) return '#f44336';
+      if (name.includes('GHTK')) return '#4caf50';
+
+      // Default colors for other routes
+      const defaultColors = [
+        '#2196f3', '#1976d2', '#1565c0', '#0d47a1', '#0288d1',
+        '#03a9f4', '#00bcd4', '#00acc1', '#0097a7', '#00838f'
+      ];
+      return defaultColors[Math.floor(Math.random() * defaultColors.length)];
+    };
+
+    // Assign colors to chart data
+    chartData.forEach(item => {
+      item.itemStyle = {
+        color: getRouteColor(item.name)
+      };
+    });
+
+    const chartDom = document.getElementById(containerId);
+    const myChart = echarts.init(chartDom);
+
+    const option = {
+      tooltip: {
+        trigger: 'item',
+        formatter: function(params) {
+          return params.marker + ' ' + params.name + '<br/>' +
+                 'Doanh thu: ' + params.value.toLocaleString('vi-VN') + ' ₫<br/>' +
+                 'Tỷ lệ: ' + params.percent + '%';
+        }
+      },
+      legend: {
+        orient: 'vertical',
+        right: 10,
+        top: 'center',
+        type: 'scroll',
+        textStyle: {
+          fontSize: 11
+        }
+      },
+      series: [
+        {
+          name: 'Tuyến',
+          type: 'pie',
+          radius: ['40%', '70%'],
+          center: ['40%', '50%'],
+          avoidLabelOverlap: false,
+          itemStyle: {
+            borderRadius: 10,
+            borderColor: '#fff',
+            borderWidth: 2
+          },
+          label: {
+            show: false,
+            position: 'center'
+          },
+          emphasis: {
+            label: {
+              show: true,
+              fontSize: 16,
+              fontWeight: 'bold',
+              formatter: function(params) {
+                return params.name + '\n' + params.percent + '%';
+              }
+            }
+          },
+          labelLine: {
+            show: false
+          },
+          data: chartData
+        }
+      ]
+    };
+
+    myChart.setOption(option);
+    window.addEventListener('resize', () => myChart.resize());
+  },
+
+  /**
+   * Render BAR CHART - Top 10 Xe doanh thu cao
+   */
+  renderTopVehiclesChart: function(containerId, data) {
+    if (!data || data.length === 0) {
+      document.getElementById(containerId).innerHTML =
+        '<div class="no-data"><i class="material-icons-outlined">inbox</i><p>Không có dữ liệu</p></div>';
+      return;
+    }
+
+    const vehicles = data.map(v => v.bien_kiem_soat || 'N/A');
+    const revenues = data.map(v => parseFloat(v.tong_doanh_thu) || 0);
+    const trips = data.map(v => parseInt(v.so_chuyen) || 0);
+
+    const chartDom = document.getElementById(containerId);
+    const myChart = echarts.init(chartDom);
+
+    const option = {
+      tooltip: {
+        trigger: 'axis',
+        axisPointer: {
+          type: 'shadow'
+        },
+        formatter: function(params) {
+          let result = params[0].axisValue + '<br/>';
+          params.forEach(param => {
+            if (param.seriesName === 'Doanh thu') {
+              result += param.marker + ' ' + param.seriesName + ': ' +
+                        param.value.toLocaleString('vi-VN') + ' ₫<br/>';
+            } else {
+              result += param.marker + ' ' + param.seriesName + ': ' +
+                        param.value + ' chuyến<br/>';
+            }
+          });
+          return result;
+        }
+      },
+      legend: {
+        data: ['Doanh thu', 'Số chuyến'],
+        top: 10
+      },
+      grid: {
+        left: '3%',
+        right: '4%',
+        bottom: '10%',
+        containLabel: true
+      },
+      xAxis: {
+        type: 'category',
+        data: vehicles,
+        axisLabel: {
+          rotate: 45,
+          fontSize: 10
+        }
+      },
+      yAxis: [
+        {
+          type: 'value',
+          name: 'Doanh thu (₫)',
+          position: 'left',
+          axisLabel: {
+            formatter: function(value) {
+              if (value >= 1000000) {
+                return (value / 1000000).toFixed(0) + 'M';
+              }
+              return value.toLocaleString('vi-VN');
+            }
+          }
+        },
+        {
+          type: 'value',
+          name: 'Số chuyến',
+          position: 'right',
+          axisLabel: {
+            formatter: '{value}'
+          }
+        }
+      ],
+      series: [
+        {
+          name: 'Doanh thu',
+          type: 'bar',
+          data: revenues,
+          itemStyle: {
+            color: function(params) {
+              const colors = [
+                '#4caf50', '#66bb6a', '#81c784', '#a5d6a7', '#c8e6c9',
+                '#dcedc8', '#f1f8e9', '#e8f5e9', '#e0f2f1', '#e0e0e0'
+              ];
+              return colors[params.dataIndex] || '#2e7d32';
+            },
+            borderRadius: [4, 4, 0, 0]
+          },
+          yAxisIndex: 0
+        },
+        {
+          name: 'Số chuyến',
+          type: 'line',
+          data: trips,
+          itemStyle: {
+            color: '#ff9800'
+          },
+          lineStyle: {
+            color: '#ff9800',
+            width: 2
+          },
+          yAxisIndex: 1,
+          smooth: true
+        }
+      ]
+    };
+
+    myChart.setOption(option);
+    window.addEventListener('resize', () => myChart.resize());
+  },
+
+  /**
+   * Render BAR CHART - Top 10 Xe doanh thu thấp
+   */
+  renderBottomVehiclesChart: function(containerId, data) {
+    if (!data || data.length === 0) {
+      document.getElementById(containerId).innerHTML =
+        '<div class="no-data"><i class="material-icons-outlined">inbox</i><p>Không có dữ liệu</p></div>';
+      return;
+    }
+
+    const vehicles = data.map(v => v.bien_kiem_soat || 'N/A');
+    const revenues = data.map(v => parseFloat(v.tong_doanh_thu) || 0);
+    const avgRevenues = data.map(v => parseFloat(v.doanh_thu_trung_binh) || 0);
+
+    const chartDom = document.getElementById(containerId);
+    const myChart = echarts.init(chartDom);
+
+    const option = {
+      tooltip: {
+        trigger: 'axis',
+        axisPointer: {
+          type: 'shadow'
+        },
+        formatter: function(params) {
+          let result = params[0].axisValue + '<br/>';
+          params.forEach(param => {
+            result += param.marker + ' ' + param.seriesName + ': ' +
+                      param.value.toLocaleString('vi-VN') + ' ₫<br/>';
+          });
+          return result;
+        }
+      },
+      legend: {
+        data: ['Tổng doanh thu', 'TB/chuyến'],
+        top: 10
+      },
+      grid: {
+        left: '3%',
+        right: '4%',
+        bottom: '10%',
+        containLabel: true
+      },
+      xAxis: {
+        type: 'category',
+        data: vehicles,
+        axisLabel: {
+          rotate: 45,
+          fontSize: 10
+        }
+      },
+      yAxis: {
+        type: 'value',
+        axisLabel: {
+          formatter: function(value) {
+            if (value >= 1000000) {
+              return (value / 1000000).toFixed(1) + 'M';
+            } else if (value >= 1000) {
+              return (value / 1000).toFixed(0) + 'K';
+            }
+            return value.toLocaleString('vi-VN');
+          }
+        }
+      },
+      series: [
+        {
+          name: 'Tổng doanh thu',
+          type: 'bar',
+          data: revenues,
+          itemStyle: {
+            color: function(params) {
+              const colors = [
+                '#ef5350', '#f44336', '#e57373', '#ef9a9a', '#ffcdd2',
+                '#ffebee', '#fce4ec', '#f8bbd0', '#f48fb1', '#f06292'
+              ];
+              return colors[params.dataIndex] || '#ff6b6b';
+            },
+            borderRadius: [4, 4, 0, 0]
+          }
+        },
+        {
+          name: 'TB/chuyến',
+          type: 'bar',
+          data: avgRevenues,
+          itemStyle: {
+            color: function(params) {
+              const colors = [
+                '#ff9800', '#ffa726', '#ffb74d', '#ffcc80', '#ffe0b2',
+                '#fff3e0', '#fbe9e7', '#ffccbc', '#ffab91', '#ff8a65'
+              ];
+              return colors[params.dataIndex] || '#ffa726';
+            },
+            borderRadius: [4, 4, 0, 0]
+          }
+        }
+      ]
+    };
+
+    myChart.setOption(option);
+    window.addEventListener('resize', () => myChart.resize());
+  },
+
+  /**
+   * Dispose all charts (cleanup khi chuyển page)
+   */
+  disposeAll: function() {
+    const chartIds = [
+      'chart-top-customers',
+      'chart-top-routes',
+      'chart-top-vehicles',
+      'chart-bottom-vehicles'
+    ];
+
+    chartIds.forEach(id => {
+      const chartDom = document.getElementById(id);
+      if (chartDom) {
+        const chart = echarts.getInstanceByDom(chartDom);
+        if (chart) {
+          chart.dispose();
+        }
+      }
+    });
+  }
+};
+</script>

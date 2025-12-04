@@ -1,0 +1,335 @@
+<script>
+/**
+ * APP_CONTROLLER.HTML
+ * Main application controller - orchestrates UI components và API calls
+ * Entry point cho tất cả user interactions
+ */
+
+const App = {
+
+  // Current filter state
+  currentFilter: {
+    type: 'day',
+    date: new Date().toISOString().split('T')[0]
+  },
+
+  /**
+   * Initialize application
+   * Được gọi khi DOM ready
+   */
+  init: function() {
+    UIComponents.init();
+    this._setupEventListeners();
+    UIComponents.renderMenu();
+    this.navigate(CLIENT_CONFIG.ui.defaultTab);
+    this._checkLayout();
+  },
+
+  /**
+   * Setup event listeners
+   */
+  _setupEventListeners: function() {
+    // Window resize
+    window.addEventListener('resize', () => this._checkLayout());
+
+    // Overlay click (mobile)
+    UIComponents.elements.overlay.addEventListener('click', () => {
+      this._closeMobileSidebar();
+    });
+  },
+
+  /**
+   * Check và update layout state (mobile/desktop)
+   */
+  _checkLayout: function() {
+    const wasMobile = UIComponents.state.isMobile;
+    UIComponents.state.isMobile = window.innerWidth <= CLIENT_CONFIG.ui.mobileBreakpoint;
+  },
+
+  /**
+   * Navigate đến một tab/page
+   * @param {string} pageId - ID của page (overview, system, reports, etc.)
+   */
+  navigate: function(pageId) {
+    UIComponents.state.activeTab = pageId;
+
+    // Re-render menu để highlight active item
+    UIComponents.renderMenu();
+
+    // Update breadcrumb
+    const menuItem = CLIENT_CONFIG.menuItems.find(item => item.id === pageId);
+    if (menuItem && UIComponents.elements.breadcrumb) {
+      UIComponents.elements.breadcrumb.textContent = menuItem.label;
+    }
+
+    // Render content based on page
+    if (pageId === 'overview') {
+      this._loadDashboardPage();
+    } else if (pageId === 'system') {
+      // System module - Landing page với điều hướng
+      UIComponents.elements.mainContent.innerHTML =
+        UIComponents.renderSystemLandingPage();
+    } else if (pageId === 'accounting') {
+      // Ke Toan module - Doi Soat & Bao Cao
+      UIComponents.elements.mainContent.innerHTML =
+        UIComponents.renderKeToanPage();
+      KeToanController.init();
+    } else {
+      // Các page khác đang under construction
+      UIComponents.elements.mainContent.innerHTML =
+        UIComponents.renderUnderConstruction(menuItem.label);
+    }
+
+    // Đóng mobile sidebar nếu đang mở
+    if (UIComponents.state.isMobile) {
+      this._closeMobileSidebar();
+    }
+  },
+
+  /**
+   * Load Dashboard page và fetch data
+   */
+  _loadDashboardPage: async function() {
+    // Render UI với NEW DASHBOARD
+    UIComponents.elements.mainContent.innerHTML = UIComponents.renderNewDashboard();
+
+    // Load tất cả dữ liệu
+    this.loadAllDashboardData();
+  },
+
+  /**
+   * Load toàn bộ dữ liệu dashboard với filter hiện tại
+   */
+  loadAllDashboardData: async function() {
+    try {
+      PerformanceUtils.showProgress();
+      PerformanceUtils.setProgress(10);
+
+      const cacheKey = PerformanceUtils.getCacheKey(this.currentFilter);
+      const cachedData = PerformanceUtils.getCache(cacheKey);
+
+      let allData;
+
+      if (cachedData) {
+        allData = cachedData;
+        PerformanceUtils.setProgress(90);
+      } else {
+        PerformanceUtils.setProgress(30);
+        allData = await ApiClient.getAllDashboardData(this.currentFilter);
+        PerformanceUtils.setProgress(80);
+        PerformanceUtils.setCache(cacheKey, allData);
+      }
+
+      PerformanceUtils.batchUpdate([
+        () => this._updateOverviewCards(allData.overview),
+        () => this._updateTopCustomers(allData.topCustomers),
+        () => this._updateTopRoutes(allData.topRoutes),
+        () => this._updateTopVehicles(allData.topVehicles),
+        () => this._updateBottomVehicles(allData.bottomVehicles)
+      ]);
+
+      PerformanceUtils.hideProgress();
+
+      if (!cachedData) {
+        PerformanceUtils.prefetchLikelyFilters(this.currentFilter, (filter) => {
+          return ApiClient.getAllDashboardData(filter);
+        });
+      }
+
+    } catch (error) {
+      console.error('[App] Error loading dashboard data:', error);
+      PerformanceUtils.hideProgress();
+      this._showError('Không thể tải dữ liệu dashboard. Vui lòng thử lại.');
+    }
+  },
+
+  /**
+   * Update 4 cards tổng quan
+   */
+  _updateOverviewCards: function(data) {
+    const container = document.getElementById('overview-cards');
+    if (container) {
+      container.innerHTML = UIComponents.renderOverviewCards(data);
+      UIComponents.updateDashboardStats(data);
+    }
+  },
+
+  /**
+   * Update chart top khách hàng
+   */
+  _updateTopCustomers: function(data) {
+    const container = document.getElementById('top-customers');
+    if (container) {
+      container.innerHTML = UIComponents.renderTopCustomersTable(data);
+      // Render chart sau khi DOM đã sẵn sàng
+      setTimeout(() => {
+        ChartUtils.renderTopCustomersChart('chart-top-customers', data);
+      }, 100);
+    }
+  },
+
+  /**
+   * Update chart top tuyến
+   */
+  _updateTopRoutes: function(data) {
+    const container = document.getElementById('top-routes');
+    if (container) {
+      container.innerHTML = UIComponents.renderTopRoutesTable(data);
+      setTimeout(() => {
+        ChartUtils.renderTopRoutesChart('chart-top-routes', data);
+      }, 100);
+    }
+  },
+
+  /**
+   * Update chart top xe cao nhất
+   */
+  _updateTopVehicles: function(data) {
+    const container = document.getElementById('top-vehicles');
+    if (container) {
+      container.innerHTML = UIComponents.renderTopVehiclesTable(data);
+      setTimeout(() => {
+        ChartUtils.renderTopVehiclesChart('chart-top-vehicles', data);
+      }, 100);
+    }
+  },
+
+  /**
+   * Update chart top xe thấp nhất
+   */
+  _updateBottomVehicles: function(data) {
+    const container = document.getElementById('bottom-vehicles');
+    if (container) {
+      container.innerHTML = UIComponents.renderTopVehiclesTable(data, true);
+      setTimeout(() => {
+        ChartUtils.renderBottomVehiclesChart('chart-bottom-vehicles', data);
+      }, 100);
+    }
+  },
+
+  // Helper: pad array to length n
+  _padArray: function(arr, n, emptyObj) {
+    const result = Array.isArray(arr) ? arr.slice() : [];
+    while (result.length < n) {
+      result.push(Object.assign({}, emptyObj));
+    }
+    return result;
+  },
+
+  // Debounced reload function
+  _debouncedReload: null,
+
+  /**
+   * Initialize debounced reload
+   */
+  _initDebouncedReload: function() {
+    if (!this._debouncedReload) {
+      this._debouncedReload = PerformanceUtils.debounce(() => {
+        this.loadAllDashboardData();
+      }, 300);
+    }
+  },
+
+  /**
+   * Thay đổi loại filter (day/week/month/year)
+   */
+  changeFilterType: function(type) {
+    this.currentFilter.type = type;
+
+    document.querySelectorAll('.filter-btn').forEach(btn => {
+      if (btn.dataset.type === type) {
+        btn.classList.add('active');
+      } else {
+        btn.classList.remove('active');
+      }
+    });
+
+    this._initDebouncedReload();
+    this._debouncedReload();
+  },
+
+  /**
+   * Apply date filter khi user chọn ngày mới
+   */
+  applyDateFilter: function() {
+    const dateInput = document.getElementById('filterDate');
+    if (dateInput) {
+      this.currentFilter.date = dateInput.value;
+      this._initDebouncedReload();
+      this._debouncedReload();
+    }
+  },
+
+  /**
+   * Reset filter về hôm nay
+   */
+  resetFilter: function() {
+    this.currentFilter.type = 'day';
+    this.currentFilter.date = new Date().toISOString().split('T')[0];
+
+    // Update UI
+    const dateInput = document.getElementById('filterDate');
+    if (dateInput) {
+      dateInput.value = this.currentFilter.date;
+    }
+
+    document.querySelectorAll('.filter-btn').forEach(btn => {
+      if (btn.dataset.type === 'day') {
+        btn.classList.add('active');
+      } else {
+        btn.classList.remove('active');
+      }
+    });
+
+    this.loadAllDashboardData();
+  },
+
+  /**
+   * Toggle sidebar (collapse/expand hoặc open/close trên mobile)
+   */
+  toggleSidebar: function() {
+    if (UIComponents.state.isMobile) {
+      // Mobile: toggle open/close
+      UIComponents.elements.sidebar.classList.toggle('mobile-open');
+      UIComponents.elements.overlay.classList.toggle('active');
+    } else {
+      // Desktop: toggle collapse/expand
+      UIComponents.state.isCollapsed = !UIComponents.state.isCollapsed;
+
+      if (UIComponents.state.isCollapsed) {
+        UIComponents.elements.sidebar.classList.add('collapsed');
+        UIComponents.elements.mainWrapper.classList.add('expanded');
+      } else {
+        UIComponents.elements.sidebar.classList.remove('collapsed');
+        UIComponents.elements.mainWrapper.classList.remove('expanded');
+      }
+
+      UIComponents.renderMenu();
+    }
+  },
+
+  /**
+   * Đóng mobile sidebar
+   */
+  _closeMobileSidebar: function() {
+    UIComponents.elements.sidebar.classList.remove('mobile-open');
+    UIComponents.elements.overlay.classList.remove('active');
+  },
+
+  /**
+   * Show error message
+   * @param {string} message - Error message
+   */
+  _showError: function(message) {
+    // Simple alert cho bây giờ, có thể thay bằng toast/snackbar
+    alert(message);
+  }
+};
+
+/**
+ * Start application khi DOM ready
+ */
+document.addEventListener('DOMContentLoaded', () => {
+  App.init();
+});
+</script>

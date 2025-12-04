@@ -1,0 +1,89 @@
+# ============================================
+# NAK Logistics Dashboard - .gitignore
+# ============================================
+
+# Node modules
+node_modules/
+standalone/node_modules/
+
+# Environment variables
+.env
+standalone/.env
+
+# BigQuery service account keys (QUAN TRỌNG - không được commit!)
+service-account-key.json
+standalone/service-account-key.json
+*.json
+!package.json
+!package-lock.json
+!appsscript.json
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+logs/
+
+# OS files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+Desktop.ini
+
+# IDE and editor files
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+*.swp
+*.swo
+*~
+.project
+.settings/
+.classpath
+
+# Build outputs
+dist/
+build/
+*.zip
+*.tar.gz
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+*.bak
+*.backup
+
+# Coverage reports
+coverage/
+.nyc_output/
+
+# Cache
+.cache/
+.npm/
+.eslintcache
+
+# PM2 (process manager)
+.pm2/
+pids/
+*.pid
+
+# Secrets and credentials
+.credentials/
+credentials.json
+token.json
+secrets/
+
+# Testing
+.env.test
+.env.local
+
+# Optional: Ignora file markdown tạm thời
+*~.md
+*.draft.md

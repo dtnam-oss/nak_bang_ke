@@ -1,0 +1,40 @@
+<script>
+/**
+ * CLIENT_CONFIG.HTML
+ * Cấu hình cho client-side (frontend)
+ * Chứa constants, menu items, và settings
+ */
+
+const CLIENT_CONFIG = {
+  // Menu configuration
+  menuItems: [
+    { id: 'overview', label: 'Tổng quan', icon: 'dashboard' },
+    { id: 'system', label: 'Hệ thống', icon: 'admin_panel_settings' },
+    { id: 'reports', label: 'Báo cáo', icon: 'analytics' },
+    { id: 'fleet', label: 'Đội xe', icon: 'local_shipping' },
+    { id: 'accounting', label: 'Kế toán', icon: 'receipt_long' },
+    { id: 'settings', label: 'Cài đặt', icon: 'settings' }
+  ],
+
+  // UI Settings
+  ui: {
+    defaultTab: 'overview',
+    animationDuration: 300,
+    mobileBreakpoint: 768
+  },
+
+  // Messages
+  messages: {
+    loadingData: 'Đang tải dữ liệu...',
+    errorLoadingData: 'Lỗi tải dữ liệu. Vui lòng thử lại.',
+    noConnection: 'Không thể kết nối đến server',
+    featureUnderDev: 'Tính năng đang được phát triển'
+  },
+
+  // Animation delays
+  delays: {
+    statsUpdate: 500,
+    fadeIn: 200
+  }
+};
+</script>

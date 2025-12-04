@@ -1,0 +1,253 @@
+<script>
+/**
+ * KE_TOAN_CONTROLLER.HTML
+ * Controller for Ke Toan module - Doi Soat and Bao Cao
+ */
+
+var KeToanController = {
+  currentData: null,
+  currentTab: 'doi-soat',
+
+  /**
+   * Initialize Ke Toan module
+   */
+  init: function() {
+    this.loadCustomers();
+    this.loadRouteTypes();
+    this.setDefaultDates();
+  },
+
+  /**
+   * Switch between tabs
+   */
+  switchTab: function(tabName) {
+    this.currentTab = tabName;
+
+    var tabs = document.querySelectorAll('.tab-btn');
+    tabs.forEach(function(tab) {
+      tab.classList.remove('active');
+    });
+
+    var panels = document.querySelectorAll('.tab-panel');
+    panels.forEach(function(panel) {
+      panel.style.display = 'none';
+      panel.classList.remove('active');
+    });
+
+    var activeTab = document.querySelector('[data-tab="' + tabName + '"]');
+    if (activeTab) {
+      activeTab.classList.add('active');
+    }
+
+    var activePanel = document.getElementById('tab-' + tabName);
+    if (activePanel) {
+      activePanel.style.display = 'block';
+      activePanel.classList.add('active');
+    }
+
+    if (tabName === 'doi-soat') {
+      this.init();
+    }
+  },
+
+  /**
+   * Load customer list for dropdown
+   */
+  loadCustomers: function() {
+    google.script.run
+      .withSuccessHandler(function(customers) {
+        var select = document.getElementById('doi-soat-khach-hang');
+        if (!select) return;
+
+        select.innerHTML = '<option value="">-- Chon khach hang --</option>';
+
+        customers.forEach(function(c) {
+          var option = document.createElement('option');
+          option.value = c.ma_khach_hang;
+          option.textContent = c.ten_khach_hang;
+          select.appendChild(option);
+        });
+      })
+      .withFailureHandler(function(error) {
+        console.error('Error loading customers:', error);
+      })
+      .getCustomerList();
+  },
+
+  /**
+   * Load route types for dropdown
+   */
+  loadRouteTypes: function() {
+    google.script.run
+      .withSuccessHandler(function(routes) {
+        var select = document.getElementById('doi-soat-loai-tuyen');
+        if (!select) return;
+
+        select.innerHTML = '<option value="">-- Tat ca --</option>';
+
+        routes.forEach(function(r) {
+          var option = document.createElement('option');
+          option.value = r.loai_tuyen;
+          option.textContent = r.loai_tuyen;
+          select.appendChild(option);
+        });
+      })
+      .withFailureHandler(function(error) {
+        console.error('Error loading routes:', error);
+      })
+      .getRouteList();
+  },
+
+  /**
+   * Set default dates (current month)
+   */
+  setDefaultDates: function() {
+    var today = new Date();
+    var firstDay = new Date(today.getFullYear(), today.getMonth(), 1);
+
+    var tuNgayEl = document.getElementById('doi-soat-tu-ngay');
+    var denNgayEl = document.getElementById('doi-soat-den-ngay');
+
+    if (tuNgayEl) {
+      tuNgayEl.value = firstDay.toISOString().split('T')[0];
+    }
+
+    if (denNgayEl) {
+      denNgayEl.value = today.toISOString().split('T')[0];
+    }
+  },
+
+  /**
+   * Reset all filters
+   */
+  resetFilters: function() {
+    document.getElementById('doi-soat-khach-hang').value = '';
+    document.getElementById('doi-soat-loai-tuyen').value = '';
+    this.setDefaultDates();
+
+    var previewSection = document.getElementById('preview-section');
+    if (previewSection) {
+      previewSection.style.display = 'none';
+    }
+  },
+
+  /**
+   * Get current filter values
+   */
+  getFilters: function() {
+    return {
+      ma_khach_hang: document.getElementById('doi-soat-khach-hang').value,
+      loai_tuyen: document.getElementById('doi-soat-loai-tuyen').value || null,
+      tu_ngay: document.getElementById('doi-soat-tu-ngay').value,
+      den_ngay: document.getElementById('doi-soat-den-ngay').value
+    };
+  },
+
+  /**
+   * Validate filters
+   */
+  validateFilters: function(filters) {
+    if (!filters.ma_khach_hang) {
+      alert('Vui long chon khach hang');
+      return false;
+    }
+
+    if (!filters.tu_ngay || !filters.den_ngay) {
+      alert('Vui long chon thoi gian');
+      return false;
+    }
+
+    var tuNgay = new Date(filters.tu_ngay);
+    var denNgay = new Date(filters.den_ngay);
+
+    if (tuNgay > denNgay) {
+      alert('Ngay bat dau phai nho hon ngay ket thuc');
+      return false;
+    }
+
+    return true;
+  },
+
+  /**
+   * Load preview data
+   */
+  loadDoiSoatPreview: function() {
+    var filters = this.getFilters();
+
+    if (!this.validateFilters(filters)) {
+      return;
+    }
+
+    PerformanceUtils.showProgress();
+
+    google.script.run
+      .withSuccessHandler(function(data) {
+        KeToanController.currentData = data;
+        KeToanController.showPreview(data);
+        PerformanceUtils.hideProgress();
+      })
+      .withFailureHandler(function(error) {
+        alert('Loi khi tai du lieu: ' + error);
+        PerformanceUtils.hideProgress();
+      })
+      .getDoiSoatData(filters);
+  },
+
+  /**
+   * Show preview section with data
+   */
+  showPreview: function(data) {
+    var previewHtml = UIComponents.renderDoiSoatPreview(data);
+
+    var previewContent = document.getElementById('preview-content');
+    if (previewContent) {
+      previewContent.innerHTML = previewHtml;
+    }
+
+    var previewSection = document.getElementById('preview-section');
+    if (previewSection) {
+      previewSection.style.display = 'block';
+
+      previewSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  },
+
+  /**
+   * Export Doi Soat to Excel or PDF
+   */
+  exportDoiSoat: function(format) {
+    if (!this.currentData) {
+      alert('Khong co du lieu de xuat. Vui long xem truoc truoc.');
+      return;
+    }
+
+    PerformanceUtils.showProgress();
+
+    if (format === 'excel') {
+      google.script.run
+        .withSuccessHandler(function(url) {
+          window.open(url, '_blank');
+          PerformanceUtils.hideProgress();
+          alert('Xuat Excel thanh cong!');
+        })
+        .withFailureHandler(function(error) {
+          alert('Loi khi xuat Excel: ' + error);
+          PerformanceUtils.hideProgress();
+        })
+        .exportDoiSoatExcel(KeToanController.currentData);
+    } else if (format === 'pdf') {
+      google.script.run
+        .withSuccessHandler(function(url) {
+          window.open(url, '_blank');
+          PerformanceUtils.hideProgress();
+          alert('Xuat PDF thanh cong!');
+        })
+        .withFailureHandler(function(error) {
+          alert('Loi khi xuat PDF: ' + error);
+          PerformanceUtils.hideProgress();
+        })
+        .exportDoiSoatPDF(KeToanController.currentData);
+    }
+  }
+};
+</script>

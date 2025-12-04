@@ -1,0 +1,383 @@
+<script>
+/**
+ * UI_COMPONENTS.HTML - NEW DASHBOARD
+ * Module quản lý các UI components và rendering logic
+ */
+
+const UIComponents = {
+
+  // Cache DOM elements
+  elements: {
+    sidebar: null,
+    mainWrapper: null,
+    menuList: null,
+    mainContent: null,
+    overlay: null,
+    breadcrumb: null
+  },
+
+  // UI State
+  state: {
+    activeTab: CLIENT_CONFIG.ui.defaultTab,
+    isCollapsed: false,
+    isMobile: false
+  },
+
+  /**
+   * Initialize và cache tất cả DOM elements
+   */
+  init: function() {
+    this.elements.sidebar = document.getElementById('sidebar');
+    this.elements.mainWrapper = document.getElementById('mainWrapper');
+    this.elements.menuList = document.getElementById('menuList');
+    this.elements.mainContent = document.getElementById('mainContent');
+    this.elements.overlay = document.getElementById('overlay');
+    this.elements.breadcrumb = document.querySelector('#breadcrumb span');
+
+    this.state.isMobile = window.innerWidth <= CLIENT_CONFIG.ui.mobileBreakpoint;
+  },
+
+  /**
+   * Render menu items vào sidebar
+   */
+  renderMenu: function() {
+    const menuHtml = CLIENT_CONFIG.menuItems.map(item => `
+      <li class="menu-item ${item.id === this.state.activeTab ? 'active' : ''}"
+          onclick="App.navigate('${item.id}')"
+          title="${this.state.isCollapsed ? item.label : ''}">
+        <i class="material-icons-outlined">${item.icon}</i>
+        <span>${item.label}</span>
+      </li>
+    `).join('');
+
+    this.elements.menuList.innerHTML = menuHtml;
+  },
+
+  /**
+   * ===================================================================
+   * NEW DASHBOARD COMPONENTS
+   * ===================================================================
+   */
+
+  /**
+   * Render BỘ LỌC NGÀY/TUẦN/THÁNG/NĂM
+   */
+  renderDateFilter: function() {
+    const today = new Date().toISOString().split('T')[0];
+
+    return `
+      <div class="date-filter-container">
+        <div class="filter-header">
+          <h3>📅 Bộ lọc thời gian</h3>
+        </div>
+        <div class="filter-controls">
+          <div class="filter-buttons">
+            <button class="filter-btn active" data-type="day" onclick="App.changeFilterType('day')">
+              <i class="material-icons-outlined">today</i>
+              <span>Ngày</span>
+            </button>
+            <button class="filter-btn" data-type="week" onclick="App.changeFilterType('week')">
+              <i class="material-icons-outlined">date_range</i>
+              <span>Tuần</span>
+            </button>
+            <button class="filter-btn" data-type="month" onclick="App.changeFilterType('month')">
+              <i class="material-icons-outlined">calendar_month</i>
+              <span>Tháng</span>
+            </button>
+            <button class="filter-btn" data-type="year" onclick="App.changeFilterType('year')">
+              <i class="material-icons-outlined">calendar_today</i>
+              <span>Năm</span>
+            </button>
+          </div>
+
+          <div class="filter-date-picker">
+            <input type="date" id="filterDate" value="${today}" onchange="App.applyDateFilter()"
+                   class="date-input">
+            <button onclick="App.resetFilter()" class="btn-reset">
+              <i class="material-icons-outlined">refresh</i>
+              Reset
+            </button>
+          </div>
+        </div>
+      </div>
+    `;
+  },
+
+  /**
+   * Render 4 CARDS TỔNG QUAN
+   */
+  renderOverviewCards: function(data) {
+    if (!data) {
+      data = { soChuyen: 0, soXe: 0, doanhThu: 0, soKhachHang: 0 };
+    }
+
+    return `
+      <div class="stats-container">
+        <!-- Card 1: Số chuyến đi -->
+        <div class="stat-card">
+          <div class="stat-info">
+            <h3 id="metric-trips">${data.soChuyen.toLocaleString('vi-VN')}</h3>
+            <span>Số lượng chuyến đi</span>
+          </div>
+          <div class="stat-icon" style="background: #e3f2fd; color: #2962ff;">
+            <i class="material-icons-outlined">local_shipping</i>
+          </div>
+        </div>
+
+        <!-- Card 2: Số xe sử dụng -->
+        <div class="stat-card">
+          <div class="stat-info">
+            <h3 id="metric-vehicles">${data.soXe.toLocaleString('vi-VN')}</h3>
+            <span>Số lượng xe sử dụng</span>
+          </div>
+          <div class="stat-icon" style="background: #e8f5e9; color: #2e7d32;">
+            <i class="material-icons-outlined">directions_car</i>
+          </div>
+        </div>
+
+        <!-- Card 3: Doanh thu -->
+        <div class="stat-card">
+          <div class="stat-info">
+            <h3 id="metric-revenue">${data.doanhThu.toLocaleString('vi-VN')} ₫</h3>
+            <span>Tổng doanh thu</span>
+          </div>
+          <div class="stat-icon" style="background: #fff3e0; color: #ef6c00;">
+            <i class="material-icons-outlined">attach_money</i>
+          </div>
+        </div>
+
+        <!-- Card 4: Khách hàng -->
+        <div class="stat-card">
+          <div class="stat-info">
+            <h3 id="metric-customers">${data.soKhachHang.toLocaleString('vi-VN')}</h3>
+            <span>Số khách hàng phục vụ</span>
+          </div>
+          <div class="stat-icon" style="background: #fce4ec; color: #c2185b;">
+            <i class="material-icons-outlined">people</i>
+          </div>
+        </div>
+      </div>
+    `;
+  },
+
+  /**
+   * Render BẢNG TOP KHÁCH HÀNG
+   */
+  renderTopCustomersTable: function(customers) {
+    if (!customers || customers.length === 0) {
+      return '<div class="no-data"><i class="material-icons-outlined">inbox</i><p>Không có dữ liệu</p></div>';
+    }
+
+    const rows = customers.map((c, index) => `
+      <tr>
+        <td class="rank-cell">#${index + 1}</td>
+        <td><strong>${c.ten_khach_hang || c.ma_khach_hang}</strong></td>
+        <td class="number-cell">${parseInt(c.so_chuyen).toLocaleString('vi-VN')}</td>
+        <td class="revenue-cell"><strong>${parseInt(c.tong_doanh_thu).toLocaleString('vi-VN')} ₫</strong></td>
+      </tr>
+    `).join('');
+
+    return `
+      <div class="table-container">
+        <table class="report-table">
+          <thead>
+            <tr>
+              <th width="50">#</th>
+              <th>Khách hàng</th>
+              <th width="120">Số chuyến</th>
+              <th width="180">Doanh thu</th>
+            </tr>
+          </thead>
+          <tbody>${rows}</tbody>
+        </table>
+      </div>
+    `;
+  },
+
+  /**
+   * Render BẢNG TOP TUYẾN
+   */
+  renderTopRoutesTable: function(routes) {
+    if (!routes || routes.length === 0) {
+      return '<div class="no-data"><i class="material-icons-outlined">inbox</i><p>Không có dữ liệu</p></div>';
+    }
+
+    const rows = routes.map((r, index) => `
+      <tr>
+        <td class="rank-cell">#${index + 1}</td>
+        <td><strong>${r.tuyen}</strong></td>
+        <td class="number-cell">${parseInt(r.so_chuyen).toLocaleString('vi-VN')}</td>
+        <td class="revenue-cell"><strong>${parseInt(r.tong_doanh_thu).toLocaleString('vi-VN')} ₫</strong></td>
+      </tr>
+    `).join('');
+
+    return `
+      <div class="table-container">
+        <table class="report-table">
+          <thead>
+            <tr>
+              <th width="50">#</th>
+              <th>Tuyến giao hàng</th>
+              <th width="120">Số chuyến</th>
+              <th width="180">Doanh thu</th>
+            </tr>
+          </thead>
+          <tbody>${rows}</tbody>
+        </table>
+      </div>
+    `;
+  },
+
+  /**
+   * Render BẢNG TOP XE
+   */
+  renderTopVehiclesTable: function(vehicles, isBottom) {
+    if (!vehicles || vehicles.length === 0) {
+      return '<div class="no-data"><i class="material-icons-outlined">inbox</i><p>Không có dữ liệu</p></div>';
+    }
+
+    const rows = vehicles.map((v, index) => `
+      <tr>
+        <td class="rank-cell">#${index + 1}</td>
+        <td><strong>${v.bien_kiem_soat}</strong></td>
+        <td class="number-cell">${parseInt(v.so_chuyen).toLocaleString('vi-VN')}</td>
+        <td class="revenue-cell"><strong>${parseInt(v.tong_doanh_thu).toLocaleString('vi-VN')} ₫</strong></td>
+        <td class="number-cell">${parseInt(v.doanh_thu_trung_binh).toLocaleString('vi-VN')} ₫</td>
+      </tr>
+    `).join('');
+
+    return `
+      <div class="table-container">
+        <table class="report-table">
+          <thead>
+            <tr>
+              <th width="50">#</th>
+              <th>Biển kiểm soát</th>
+              <th width="100">Số chuyến</th>
+              <th width="150">Tổng doanh thu</th>
+              <th width="150">TB/chuyến</th>
+            </tr>
+          </thead>
+          <tbody>${rows}</tbody>
+        </table>
+      </div>
+    `;
+  },
+
+  /**
+   * Render TOÀN BỘ DASHBOARD MỚI
+   */
+  renderNewDashboard: function() {
+    return `
+      ${this.renderDateFilter()}
+
+      <div id="overview-cards">
+        <div class="loading-state">
+          <i class="material-icons-outlined rotating">sync</i>
+          <p>Đang tải dữ liệu...</p>
+        </div>
+      </div>
+
+      <div class="dashboard-sections">
+        <!-- SECTION: BÁO CÁO KHÁCH HÀNG -->
+        <div class="dashboard-section">
+          <h2 class="section-title">
+            <i class="material-icons-outlined">people</i>
+            Báo cáo Khách hàng
+          </h2>
+          <div class="report-grid">
+            <div class="report-card">
+              <h3 class="report-card-title">🏆 Top 10 Khách hàng</h3>
+              <div id="top-customers" class="report-content">
+                <div class="loading-state-small">Đang tải...</div>
+              </div>
+            </div>
+            <div class="report-card">
+              <h3 class="report-card-title">🛣️ Top 10 Tuyến</h3>
+              <div id="top-routes" class="report-content">
+                <div class="loading-state-small">Đang tải...</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- SECTION: BÁO CÁO XE -->
+        <div class="dashboard-section">
+          <h2 class="section-title">
+            <i class="material-icons-outlined">local_shipping</i>
+            Báo cáo Xe
+          </h2>
+          <div class="report-grid">
+            <div class="report-card">
+              <h3 class="report-card-title">⬆️ Top 10 Xe doanh thu cao nhất</h3>
+              <div id="top-vehicles" class="report-content">
+                <div class="loading-state-small">Đang tải...</div>
+              </div>
+            </div>
+            <div class="report-card">
+              <h3 class="report-card-title">⬇️ Top 10 Xe doanh thu thấp nhất</h3>
+              <div id="bottom-vehicles" class="report-content">
+                <div class="loading-state-small">Đang tải...</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
+  },
+
+  /**
+   * Render page "đang phát triển"
+   */
+  renderUnderConstruction: function(title) {
+    return `
+      <div class="dev-state">
+        <i class="material-icons-outlined" style="font-size: 64px; color: #e0e0e0; margin-bottom: 16px;">construction</i>
+        <h2>${title}</h2>
+        <p style="color: #888;">Tính năng <strong>"${title}"</strong> đang được phát triển.</p>
+      </div>
+    `;
+  },
+
+  /**
+   * Update số liệu lên overview cards với animation
+   */
+  updateDashboardStats: function(data) {
+    const elTotal = document.getElementById('metric-trips');
+    const elVehicles = document.getElementById('metric-vehicles');
+    const elRevenue = document.getElementById('metric-revenue');
+    const elCustomers = document.getElementById('metric-customers');
+
+    if (elTotal && elVehicles && elRevenue && elCustomers) {
+      this._animateValue(elTotal, 0, data.soChuyen, 800);
+      this._animateValue(elVehicles, 0, data.soXe, 800);
+      this._animateValue(elRevenue, 0, data.doanhThu, 800, ' ₫');
+      this._animateValue(elCustomers, 0, data.soKhachHang, 800);
+    }
+  },
+
+  /**
+   * Animate số từ start đến end
+   */
+  _animateValue: function(element, start, end, duration, suffix = '') {
+    const range = end - start;
+    const startTime = performance.now();
+
+    const animate = (currentTime) => {
+      const elapsed = currentTime - startTime;
+      const progress = Math.min(elapsed / duration, 1);
+
+      const easeProgress = 1 - Math.pow(1 - progress, 3);
+      const currentValue = Math.floor(start + (range * easeProgress));
+
+      element.textContent = currentValue.toLocaleString('vi-VN') + suffix;
+
+      if (progress < 1) {
+        requestAnimationFrame(animate);
+      }
+    };
+
+    requestAnimationFrame(animate);
+  }
+};
+</script>
