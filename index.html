@@ -8,11 +8,6 @@
     <link rel="icon" href="https://i.ibb.co/8b4MvV2/Black-Modern-Software-Programmer-Logo-2.png">
 </head>
 <body>
-    <!-- Header -->
-    <header class="header">
-        <h1>Bảng kê đối soát</h1>
-    </header>
-
     <!-- Filter Section -->
     <div class="filter-section">
         <div class="filter-container">
@@ -29,15 +24,29 @@
             </div>
             
             <div class="filter-item">
+                <label for="plateSelect">Biển kiểm soát:</label>
+                <select id="plateSelect" class="select-dropdown">
+                    <option value="">-- Chọn biển số --</option>
+                </select>
+            </div>
+
+            <div class="filter-item">
+                <label for="routeSelect">Tuyến:</label>
+                <select id="routeSelect" class="select-dropdown">
+                    <option value="">-- Chọn tuyến --</option>
+                </select>
+            </div>
+
+            <div class="filter-item">
                 <label for="fromDate">Từ ngày:</label>
                 <input type="date" id="fromDate" class="date-input">
             </div>
-            
+
             <div class="filter-item">
                 <label for="toDate">Đến ngày:</label>
                 <input type="date" id="toDate" class="date-input">
             </div>
-            
+
             <div class="filter-item">
                 <button id="filterBtn" class="btn-filter">Lọc dữ liệu</button>
                 <button id="resetBtn" class="btn-reset">Đặt lại</button>

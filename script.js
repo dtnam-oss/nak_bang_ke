@@ -4,6 +4,8 @@ const sampleData = [
         id: 1,
         customerName: 'Nguyễn Văn A',
         customerId: 'customer1',
+        plate: '29A-12345',
+        route: 'HN-HP',
         date: '2024-12-01',
         orderId: 'DH001',
         amount: 5000000,
@@ -14,6 +16,8 @@ const sampleData = [
         id: 2,
         customerName: 'Trần Thị B',
         customerId: 'customer2',
+        plate: '30G-67890',
+        route: 'HN-HCM',
         date: '2024-12-02',
         orderId: 'DH002',
         amount: 3500000,
@@ -24,6 +28,8 @@ const sampleData = [
         id: 3,
         customerName: 'Lê Văn C',
         customerId: 'customer3',
+        plate: '29A-12345',
+        route: 'HN-DN',
         date: '2024-12-03',
         orderId: 'DH003',
         amount: 7200000,
@@ -34,6 +40,8 @@ const sampleData = [
         id: 4,
         customerName: 'Phạm Thị D',
         customerId: 'customer4',
+        plate: '51F-23456',
+        route: 'HN-HP',
         date: '2024-12-04',
         orderId: 'DH004',
         amount: 2800000,
@@ -44,6 +52,8 @@ const sampleData = [
         id: 5,
         customerName: 'Hoàng Văn E',
         customerId: 'customer5',
+        plate: '30G-67890',
+        route: 'HN-HCM',
         date: '2024-11-28',
         orderId: 'DH005',
         amount: 4500000,
@@ -54,6 +64,8 @@ const sampleData = [
         id: 6,
         customerName: 'Nguyễn Văn A',
         customerId: 'customer1',
+        plate: '29A-12345',
+        route: 'HN-DN',
         date: '2024-11-25',
         orderId: 'DH006',
         amount: 6000000,
@@ -64,6 +76,8 @@ const sampleData = [
         id: 7,
         customerName: 'Trần Thị B',
         customerId: 'customer2',
+        plate: '51F-23456',
+        route: 'HN-HP',
         date: '2024-11-20',
         orderId: 'DH007',
         amount: 1500000,
@@ -74,6 +88,8 @@ const sampleData = [
         id: 8,
         customerName: 'Lê Văn C',
         customerId: 'customer3',
+        plate: '30G-67890',
+        route: 'HN-HCM',
         date: '2024-11-15',
         orderId: 'DH008',
         amount: 8900000,
@@ -87,6 +103,8 @@ let currentData = [...sampleData];
 
 // DOM elements
 const customerSelect = document.getElementById('customerSelect');
+const plateSelect = document.getElementById('plateSelect');
+const routeSelect = document.getElementById('routeSelect');
 const fromDateInput = document.getElementById('fromDate');
 const toDateInput = document.getElementById('toDate');
 const filterBtn = document.getElementById('filterBtn');
@@ -97,9 +115,31 @@ const noDataEl = document.getElementById('noData');
 
 // Initialize the page
 function init() {
+    populateFilters();
     renderTable(currentData);
     setDefaultDates();
     attachEventListeners();
+}
+
+// Populate filter dropdowns with unique values from data
+function populateFilters() {
+    // Get unique plates
+    const plates = [...new Set(sampleData.map(item => item.plate))].sort();
+    plates.forEach(plate => {
+        const option = document.createElement('option');
+        option.value = plate;
+        option.textContent = plate;
+        plateSelect.appendChild(option);
+    });
+
+    // Get unique routes
+    const routes = [...new Set(sampleData.map(item => item.route))].sort();
+    routes.forEach(route => {
+        const option = document.createElement('option');
+        option.value = route;
+        option.textContent = route;
+        routeSelect.appendChild(option);
+    });
 }
 
 // Set default dates (last 30 days)
@@ -185,25 +225,37 @@ function renderTable(data) {
 // Filter data
 function filterData() {
     const selectedCustomer = customerSelect.value;
+    const selectedPlate = plateSelect.value;
+    const selectedRoute = routeSelect.value;
     const fromDate = fromDateInput.value;
     const toDate = toDateInput.value;
-    
+
     let filteredData = [...sampleData];
-    
+
     // Filter by customer
     if (selectedCustomer) {
         filteredData = filteredData.filter(item => item.customerId === selectedCustomer);
     }
-    
+
+    // Filter by plate
+    if (selectedPlate) {
+        filteredData = filteredData.filter(item => item.plate === selectedPlate);
+    }
+
+    // Filter by route
+    if (selectedRoute) {
+        filteredData = filteredData.filter(item => item.route === selectedRoute);
+    }
+
     // Filter by date range
     if (fromDate) {
         filteredData = filteredData.filter(item => item.date >= fromDate);
     }
-    
+
     if (toDate) {
         filteredData = filteredData.filter(item => item.date <= toDate);
     }
-    
+
     currentData = filteredData;
     renderTable(currentData);
 }
@@ -211,6 +263,8 @@ function filterData() {
 // Reset filters
 function resetFilters() {
     customerSelect.value = '';
+    plateSelect.value = '';
+    routeSelect.value = '';
     setDefaultDates();
     currentData = [...sampleData];
     renderTable(currentData);
@@ -220,9 +274,11 @@ function resetFilters() {
 function attachEventListeners() {
     filterBtn.addEventListener('click', filterData);
     resetBtn.addEventListener('click', resetFilters);
-    
+
     // Allow filtering with Enter key
     customerSelect.addEventListener('change', filterData);
+    plateSelect.addEventListener('change', filterData);
+    routeSelect.addEventListener('change', filterData);
     fromDateInput.addEventListener('change', filterData);
     toDateInput.addEventListener('change', filterData);
 }
