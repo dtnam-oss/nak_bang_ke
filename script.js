@@ -1,7 +1,6 @@
-// Google Sheets API configuration
-const SPREADSHEET_ID = '18pS9YMZSwZCVBt_anIGn3GN4qFoPpMtALQm4YvMDd-g';
-const SHEET_NAME = 'ke_toan';
-const API_KEY = 'YOUR_API_KEY'; // Bạn cần tạo API key từ Google Cloud Console
+// Google Apps Script Web App URL
+// Bạn cần deploy Google Apps Script và lấy URL ở đây
+const WEB_APP_URL = 'YOUR_WEB_APP_URL'; // Thay bằng URL deploy từ Google Apps Script
 
 // Global variables
 let allData = [];
@@ -28,40 +27,27 @@ async function init() {
     attachEventListeners();
 }
 
-// Fetch data from Google Sheets
+// Fetch data from Google Apps Script Web App
 async function fetchDataFromGoogleSheets() {
     try {
-        const url = `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/${SHEET_NAME}?key=${API_KEY}`;
+        const url = `${WEB_APP_URL}?action=getData`;
         const response = await fetch(url);
+
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
         const data = await response.json();
 
-        if (data.values && data.values.length > 1) {
-            const headers = data.values[0];
-            const rows = data.values.slice(1);
-
-            allData = rows.map(row => {
-                const item = {};
-                headers.forEach((header, index) => {
-                    const value = row[index] || '';
-
-                    // Parse JSON cho cột chi_tiet_chuyen_di
-                    if (header === 'chi_tiet_chuyen_di' && value) {
-                        try {
-                            item[header] = JSON.parse(value);
-                        } catch (e) {
-                            item[header] = value;
-                        }
-                    } else {
-                        item[header] = value;
-                    }
-                });
-                return item;
-            });
-
+        if (Array.isArray(data) && data.length > 0) {
+            allData = data;
             currentData = [...allData];
+        } else {
+            allData = [];
+            currentData = [];
         }
     } catch (error) {
-        console.error('Error fetching data from Google Sheets:', error);
+        console.error('Error fetching data from Google Apps Script:', error);
         // Fallback to empty data
         allData = [];
         currentData = [];

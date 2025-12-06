@@ -3,6 +3,15 @@
 // Sử dụng để deploy webapp lên Google Apps Script và embed vào website khác
 
 function doGet(e) {
+  // Nếu có parameter 'action=getData', trả về JSON data
+  if (e.parameter.action === 'getData') {
+    var data = getDataFromSheet();
+    return ContentService
+      .createTextOutput(JSON.stringify(data))
+      .setMimeType(ContentService.MimeType.JSON);
+  }
+
+  // Nếu không có parameter, trả về HTML page
   var template = HtmlService.createTemplateFromFile('Index');
   return template
     .evaluate()
