@@ -115,7 +115,6 @@ body {
 .btn-reset {
     background: #f0f0f0;
     color: #555;
-    margin-left: 10px;
 }
 
 .btn-reset:hover {
@@ -130,6 +129,17 @@ body {
     border-radius: 10px;
     box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
     animation: fadeIn 0.5s ease-out 0.4s both;
+}
+
+.table-header-actions {
+    display: flex;
+    justify-content: flex-end;
+    margin-bottom: 15px;
+}
+
+.action-buttons {
+    display: flex;
+    gap: 10px;
 }
 
 .table-container {
