@@ -18,26 +18,36 @@ function include(filename) {
   return HtmlService.createHtmlOutputFromFile(filename).getContent();
 }
 
-// Hàm lấy dữ liệu từ Google Sheets (nếu cần)
+// Hàm lấy dữ liệu từ Google Sheets
 function getDataFromSheet() {
   try {
-    // Thay 'YOUR_SHEET_ID' bằng ID của Google Sheet
-    var spreadsheet = SpreadsheetApp.openById('YOUR_SHEET_ID');
-    var sheet = spreadsheet.getSheetByName('Data'); // Tên sheet
+    var spreadsheet = SpreadsheetApp.openById('18pS9YMZSwZCVBt_anIGn3GN4qFoPpMtALQm4YvMDd-g');
+    var sheet = spreadsheet.getSheetByName('ke_toan');
     var data = sheet.getDataRange().getValues();
-    
+
     // Chuyển đổi dữ liệu thành JSON
     var headers = data[0];
     var jsonData = [];
-    
+
     for (var i = 1; i < data.length; i++) {
       var row = {};
       for (var j = 0; j < headers.length; j++) {
-        row[headers[j]] = data[i][j];
+        var value = data[i][j];
+
+        // Parse JSON cho cột chi_tiet_chuyen_di
+        if (headers[j] === 'chi_tiet_chuyen_di' && typeof value === 'string') {
+          try {
+            row[headers[j]] = JSON.parse(value);
+          } catch (e) {
+            row[headers[j]] = value;
+          }
+        } else {
+          row[headers[j]] = value;
+        }
       }
       jsonData.push(row);
     }
-    
+
     return jsonData;
   } catch (error) {
     Logger.log('Error getting data from sheet: ' + error);

@@ -12,18 +12,6 @@
     <div class="filter-section">
         <div class="filter-container">
             <div class="filter-item">
-                <label for="customerSelect">Tên khách hàng:</label>
-                <select id="customerSelect" class="select-dropdown">
-                    <option value="">-- Chọn khách hàng --</option>
-                    <option value="customer1">Nguyễn Văn A</option>
-                    <option value="customer2">Trần Thị B</option>
-                    <option value="customer3">Lê Văn C</option>
-                    <option value="customer4">Phạm Thị D</option>
-                    <option value="customer5">Hoàng Văn E</option>
-                </select>
-            </div>
-            
-            <div class="filter-item">
                 <label for="plateSelect">Biển kiểm soát:</label>
                 <select id="plateSelect" class="select-dropdown">
                     <option value="">-- Chọn biển số --</option>
@@ -31,9 +19,16 @@
             </div>
 
             <div class="filter-item">
-                <label for="routeSelect">Tuyến:</label>
+                <label for="customerSelect">Tên khách hàng:</label>
+                <select id="customerSelect" class="select-dropdown">
+                    <option value="">-- Chọn khách hàng --</option>
+                </select>
+            </div>
+
+            <div class="filter-item">
+                <label for="routeSelect">Loại tuyến:</label>
                 <select id="routeSelect" class="select-dropdown">
-                    <option value="">-- Chọn tuyến --</option>
+                    <option value="">-- Chọn loại tuyến --</option>
                 </select>
             </div>
 
@@ -62,12 +57,12 @@
                 <thead>
                     <tr>
                         <th>STT</th>
+                        <th>Ngày tạo</th>
+                        <th>Biển kiểm soát</th>
                         <th>Tên khách hàng</th>
-                        <th>Ngày giao dịch</th>
-                        <th>Mã đơn hàng</th>
-                        <th>Số tiền (VNĐ)</th>
-                        <th>Trạng thái</th>
-                        <th>Ghi chú</th>
+                        <th>Mã chuyến đi</th>
+                        <th>Loại tuyến</th>
+                        <th>Chi tiết chuyến đi</th>
                     </tr>
                 </thead>
                 <tbody id="tableBody">
@@ -75,9 +70,8 @@
                 </tbody>
                 <tfoot>
                     <tr class="total-row">
-                        <td colspan="4"><strong>Tổng cộng:</strong></td>
-                        <td id="totalAmount"><strong>0</strong></td>
-                        <td colspan="2"></td>
+                        <td colspan="6"><strong>Tổng số chuyến:</strong></td>
+                        <td id="totalTrips"><strong>0</strong></td>
                     </tr>
                 </tfoot>
             </table>
