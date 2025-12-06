@@ -1,6 +1,6 @@
 // Google Apps Script Web App URL
 // Bạn cần deploy Google Apps Script và lấy URL ở đây
-const WEB_APP_URL = 'YOUR_WEB_APP_URL'; // Thay bằng URL deploy từ Google Apps Script
+const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbyOuru9de8kUesUXGOeGX3PGzCraa_hXE7uYJD9LidDGzTQkDh9XKkVS63ZvY8i4kKV/exec'; // Thay bằng URL deploy từ Google Apps Script
 
 // Global variables
 let allData = [];
