@@ -306,9 +306,36 @@ function initNavigation() {
             // Get page name
             const page = this.getAttribute('data-page');
 
-            // Show notification for pages under development
-            if (page !== 'doi-soat') {
-                showNotification(`Trang "${this.textContent}" đang được xây dựng`);
+            // Hide all page sections
+            document.querySelectorAll('.page-section').forEach(section => {
+                section.style.display = 'none';
+            });
+
+            // Show selected page
+            switch(page) {
+                case 'bao-cao':
+                    document.getElementById('baoCaoSection').style.display = 'block';
+                    if (typeof initReportPage === 'function') {
+                        initReportPage();
+                    }
+                    break;
+                case 'doi-soat':
+                    document.getElementById('doiSoatSection').style.display = 'block';
+                    break;
+                case 'nhien-lieu':
+                case 'phuong-tien':
+                    showNotification(`Trang "${this.textContent}" đang được xây dựng`);
+                    // Show doi-soat as default
+                    document.getElementById('doiSoatSection').style.display = 'block';
+                    // Re-activate doi-soat link
+                    navLinks.forEach(l => {
+                        if (l.getAttribute('data-page') === 'doi-soat') {
+                            l.classList.add('active');
+                        } else if (l === this) {
+                            l.classList.remove('active');
+                        }
+                    });
+                    break;
             }
         });
     });

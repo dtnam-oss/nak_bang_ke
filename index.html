@@ -25,6 +25,102 @@
     </nav>
 
     <div class="content-wrapper">
+        <!-- Báo cáo Section -->
+        <div id="baoCaoSection" class="page-section" style="display: none;">
+            <!-- Bộ lọc thời gian -->
+            <div class="filter-section report-filter">
+                <div class="filter-container">
+                    <div class="quick-filters">
+                        <button class="quick-filter-btn active" data-filter="today">Hôm nay</button>
+                        <button class="quick-filter-btn" data-filter="week">Tuần này</button>
+                        <button class="quick-filter-btn" data-filter="month">Tháng này</button>
+                        <button class="quick-filter-btn" data-filter="custom">Tùy chỉnh</button>
+                    </div>
+                    <div class="custom-date-filter" style="display: none;">
+                        <div class="filter-item">
+                            <label for="reportFromDate">Từ ngày:</label>
+                            <input type="date" id="reportFromDate" class="input-field">
+                        </div>
+                        <div class="filter-item">
+                            <label for="reportToDate">Đến ngày:</label>
+                            <input type="date" id="reportToDate" class="input-field">
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Card tổng quan -->
+            <div class="overview-cards">
+                <div class="stat-card">
+                    <div class="stat-icon revenue-icon">₫</div>
+                    <div class="stat-content">
+                        <h3 class="stat-label">Doanh thu</h3>
+                        <p class="stat-value" id="totalRevenue">0</p>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon trips-icon">🚚</div>
+                    <div class="stat-content">
+                        <h3 class="stat-label">Số chuyến</h3>
+                        <p class="stat-value" id="totalTrips">0</p>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon nak-icon">🏢</div>
+                    <div class="stat-content">
+                        <h3 class="stat-label">Số xe NAK</h3>
+                        <p class="stat-value" id="totalNakVehicles">0</p>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon vendor-icon">🤝</div>
+                    <div class="stat-content">
+                        <h3 class="stat-label">Số xe Vendor</h3>
+                        <p class="stat-value" id="totalVendorVehicles">0</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Charts -->
+            <div class="charts-container">
+                <div class="chart-card full-width">
+                    <h3 class="chart-title">Doanh thu theo ngày</h3>
+                    <canvas id="revenueByDateChart"></canvas>
+                </div>
+
+                <div class="chart-card">
+                    <h3 class="chart-title">Doanh thu theo tuyến</h3>
+                    <canvas id="revenueByRouteChart"></canvas>
+                </div>
+
+                <div class="chart-card">
+                    <h3 class="chart-title">Doanh thu theo khách hàng - tuyến</h3>
+                    <canvas id="revenueByCustomerRouteChart"></canvas>
+                </div>
+
+                <div class="chart-card full-width">
+                    <h3 class="chart-title">Số lượng chuyến Vendor</h3>
+                    <div class="table-container">
+                        <table id="vendorTripsTable">
+                            <thead>
+                                <tr>
+                                    <th>STT</th>
+                                    <th>Tên tài xế/Vendor</th>
+                                    <th>Khách hàng</th>
+                                    <th>Loại tuyến</th>
+                                    <th>Số chuyến</th>
+                                </tr>
+                            </thead>
+                            <tbody id="vendorTripsBody">
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Đối soát Section -->
+        <div id="doiSoatSection" class="page-section">
         <!-- Filter Section -->
         <div class="filter-section">
         <div class="filter-container">
@@ -97,7 +193,10 @@
         </div>
     </div>
     </div>
+    </div>
 
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="script.js"></script>
+    <script src="report.js"></script>
 </body>
 </html>
