@@ -234,6 +234,10 @@ body {
     grid-column: 1 / -1;
 }
 
+.chart-card canvas {
+    max-height: 300px;
+}
+
 .chart-title {
     font-size: 1.2em;
     font-weight: 700;

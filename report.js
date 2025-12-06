@@ -38,7 +38,7 @@ async function fetchReportData() {
 async function initReportPage() {
     await fetchReportData();
     initReportFilters();
-    filterReportByToday();
+    filterReportByMonth(); // Default filter: Tháng này
 }
 
 // Initialize report filters
@@ -211,6 +211,19 @@ function updateRevenueByDateChart() {
                             return 'Doanh thu: ' + formatCurrency(context.parsed.y);
                         }
                     }
+                },
+                datalabels: {
+                    display: true,
+                    color: '#667eea',
+                    font: {
+                        weight: 'bold',
+                        size: 10
+                    },
+                    formatter: function(value) {
+                        return formatCurrency(value);
+                    },
+                    anchor: 'end',
+                    align: 'top'
                 }
             },
             scales: {
@@ -284,6 +297,19 @@ function updateRevenueByRouteChart() {
                             return context.label + ': ' + formatCurrency(context.parsed);
                         }
                     }
+                },
+                datalabels: {
+                    display: true,
+                    color: '#fff',
+                    font: {
+                        weight: 'bold',
+                        size: 11
+                    },
+                    formatter: function(value, context) {
+                        const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                        const percentage = ((value / total) * 100).toFixed(1);
+                        return percentage + '%';
+                    }
                 }
             }
         }
@@ -342,6 +368,19 @@ function updateRevenueByCustomerRouteChart() {
                             return 'Doanh thu: ' + formatCurrency(context.parsed.y);
                         }
                     }
+                },
+                datalabels: {
+                    display: true,
+                    color: '#667eea',
+                    font: {
+                        weight: 'bold',
+                        size: 10
+                    },
+                    formatter: function(value) {
+                        return formatCurrency(value);
+                    },
+                    anchor: 'end',
+                    align: 'top'
                 }
             },
             scales: {
