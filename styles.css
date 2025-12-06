@@ -150,6 +150,7 @@ table {
     width: 100%;
     border-collapse: collapse;
     min-width: 800px;
+    border: 1px solid rgba(102, 126, 234, 0.2);
 }
 
 thead {
@@ -158,16 +159,17 @@ thead {
 }
 
 thead th {
-    padding: 15px;
+    padding: 12px;
     text-align: left;
     font-weight: 600;
     text-transform: uppercase;
-    letter-spacing: 1px;
-    font-size: 0.9em;
+    letter-spacing: 0.5px;
+    font-size: 0.75em;
+    border: 1px solid rgba(255, 255, 255, 0.2);
 }
 
 tbody tr {
-    border-bottom: 1px solid #e0e0e0;
+    border-bottom: 1px solid rgba(102, 126, 234, 0.15);
     transition: all 0.3s ease;
 }
 
@@ -179,6 +181,7 @@ tbody tr:hover {
 tbody td {
     padding: 15px;
     color: #555;
+    border: 1px solid rgba(102, 126, 234, 0.1);
 }
 
 tbody tr:nth-child(even) {

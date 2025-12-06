@@ -123,12 +123,12 @@ function formatTripDetails(chiTiet) {
     if (Array.isArray(chiTiet)) {
         return chiTiet.map(item => {
             const parts = [];
-            if (item.lo_trinh) parts.push(`Lộ trình: ${item.lo_trinh}`);
-            if (item.lo_trinh_chi_tiet_theo_diem) parts.push(`Chi tiết: ${item.lo_trinh_chi_tiet_theo_diem}`);
-            if (item.loai_diem) parts.push(`Loại: ${item.loai_diem}`);
-            if (item.ma_chuyen_di_kh) parts.push(`Mã: ${item.ma_chuyen_di_kh}`);
+            if (item.lo_trinh) parts.push(`<strong>Lộ trình:</strong> ${item.lo_trinh}`);
+            if (item.lo_trinh_chi_tiet_theo_diem) parts.push(`<strong>Chi tiết:</strong> ${item.lo_trinh_chi_tiet_theo_diem}`);
+            if (item.loai_diem) parts.push(`<strong>Loại:</strong> ${item.loai_diem}`);
+            if (item.ma_chuyen_di_kh) parts.push(`<strong>Mã:</strong> ${item.ma_chuyen_di_kh}`);
             return parts.join('<br>');
-        }).join('<br><hr style="margin: 5px 0;">');
+        }).join('<br><hr style="margin: 5px 0; border: none; border-top: 1px solid rgba(102, 126, 234, 0.2);">');
     }
 
     return JSON.stringify(chiTiet);
@@ -156,9 +156,8 @@ function renderTable(data) {
             <td>${formatDateForDisplay(item.ngay_tao || '')}</td>
             <td>${item.bien_kiem_soat || ''}</td>
             <td>${item.ten_khach_hang || ''}</td>
-            <td>${item.ma_chuyen_di || ''}</td>
             <td>${item.loai_tuyen_khach_hang || ''}</td>
-            <td style="max-width: 300px; white-space: normal;">${formatTripDetails(item.chi_tiet_chuyen_di)}</td>
+            <td style="white-space: normal; font-size: 0.9em;">${formatTripDetails(item.chi_tiet_chuyen_di)}</td>
         `;
 
         tableBody.appendChild(row);
