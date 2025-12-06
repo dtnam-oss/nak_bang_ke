@@ -8,8 +8,25 @@
     <link rel="icon" href="https://i.ibb.co/8b4MvV2/Black-Modern-Software-Programmer-Logo-2.png">
 </head>
 <body>
-    <!-- Filter Section -->
-    <div class="filter-section">
+    <!-- Navigation Menu -->
+    <nav class="nav-menu">
+        <div class="nav-container">
+            <div class="nav-logo">
+                <img src="https://i.ibb.co/8b4MvV2/Black-Modern-Software-Programmer-Logo-2.png" alt="Logo">
+                <span>Hệ thống quản lý</span>
+            </div>
+            <ul class="nav-links">
+                <li><a href="#" data-page="bao-cao">Báo cáo</a></li>
+                <li><a href="#" data-page="doi-soat" class="active">Đối soát</a></li>
+                <li><a href="#" data-page="nhien-lieu">Nhiên liệu</a></li>
+                <li><a href="#" data-page="phuong-tien">Phương tiện</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <div class="content-wrapper">
+        <!-- Filter Section -->
+        <div class="filter-section">
         <div class="filter-container">
             <div class="filter-item">
                 <label for="plateSelect">Biển kiểm soát:</label>
@@ -78,6 +95,7 @@
                 <button class="pagination-btn" id="nextBtn">Sau →</button>
             </div>
         </div>
+    </div>
     </div>
 
     <script src="script.js"></script>

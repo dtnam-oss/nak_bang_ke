@@ -289,5 +289,61 @@ function attachEventListeners() {
     nextBtn.addEventListener('click', goToNextPage);
 }
 
+// Navigation menu handling
+function initNavigation() {
+    const navLinks = document.querySelectorAll('.nav-links a');
+
+    navLinks.forEach(link => {
+        link.addEventListener('click', function(e) {
+            e.preventDefault();
+
+            // Remove active class from all links
+            navLinks.forEach(l => l.classList.remove('active'));
+
+            // Add active class to clicked link
+            this.classList.add('active');
+
+            // Get page name
+            const page = this.getAttribute('data-page');
+
+            // Show notification for pages under development
+            if (page !== 'doi-soat') {
+                showNotification(`Trang "${this.textContent}" đang được xây dựng`);
+            }
+        });
+    });
+}
+
+// Show notification
+function showNotification(message) {
+    // Remove existing notification
+    const existing = document.querySelector('.notification');
+    if (existing) {
+        existing.remove();
+    }
+
+    // Create notification
+    const notification = document.createElement('div');
+    notification.className = 'notification';
+    notification.textContent = message;
+    document.body.appendChild(notification);
+
+    // Show notification
+    setTimeout(() => {
+        notification.classList.add('show');
+    }, 10);
+
+    // Hide and remove after 3 seconds
+    setTimeout(() => {
+        notification.classList.remove('show');
+        setTimeout(() => {
+            notification.remove();
+        }, 300);
+    }, 3000);
+}
+
 // Initialize when DOM is loaded
-document.addEventListener('DOMContentLoaded', init);
+document.addEventListener('DOMContentLoaded', () => {
+    init();
+    initNavigation();
+});
