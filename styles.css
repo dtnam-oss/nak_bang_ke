@@ -42,6 +42,9 @@ body {
     box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
     margin-bottom: 30px;
     animation: fadeIn 0.5s ease-out 0.2s both;
+    position: sticky;
+    top: 0;
+    z-index: 100;
 }
 
 .filter-container {
@@ -144,6 +147,8 @@ body {
 
 .table-container {
     overflow-x: auto;
+    max-height: calc(100vh - 250px);
+    position: relative;
 }
 
 table {
@@ -156,6 +161,9 @@ table {
 thead {
     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
     color: white;
+    position: sticky;
+    top: 0;
+    z-index: 10;
 }
 
 thead th {
@@ -223,23 +231,61 @@ tbody tr:nth-child(even):hover {
     display: inline-block;
 }
 
-/* Total Row */
-.total-row {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    color: white;
-    font-size: 1.1em;
-}
-
-.total-row td {
-    padding: 18px 15px;
-}
-
 /* No Data Message */
 .no-data {
     text-align: center;
     padding: 40px;
     color: #999;
     font-size: 1.2em;
+}
+
+/* Pagination */
+.pagination {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 20px;
+    padding: 15px 0;
+}
+
+.pagination-info {
+    color: #555;
+    font-size: 0.95em;
+}
+
+.pagination-controls {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+}
+
+.pagination-btn {
+    padding: 8px 16px;
+    border: 2px solid #667eea;
+    background: white;
+    color: #667eea;
+    border-radius: 6px;
+    font-size: 0.9em;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.pagination-btn:hover:not(:disabled) {
+    background: #667eea;
+    color: white;
+    transform: translateY(-2px);
+}
+
+.pagination-btn:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+
+.page-number {
+    color: #667eea;
+    font-weight: 600;
+    font-size: 1em;
 }
 
 /* Animations */

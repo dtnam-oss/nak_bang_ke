@@ -5,6 +5,8 @@ const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbyOuru9de8kUesUXGOe
 // Global variables
 let allData = [];
 let currentData = [];
+let currentPage = 1;
+const itemsPerPage = 50;
 
 // DOM elements
 const customerSelect = document.getElementById('customerSelect');
@@ -13,8 +15,13 @@ const routeSelect = document.getElementById('routeSelect');
 const fromDateInput = document.getElementById('fromDate');
 const toDateInput = document.getElementById('toDate');
 const tableBody = document.getElementById('tableBody');
-const totalTripsEl = document.getElementById('totalTrips');
 const noDataEl = document.getElementById('noData');
+const paginationEl = document.getElementById('pagination');
+const paginationInfoEl = document.getElementById('paginationInfo');
+const currentPageEl = document.getElementById('currentPage');
+const totalPagesEl = document.getElementById('totalPages');
+const prevBtn = document.getElementById('prevBtn');
+const nextBtn = document.getElementById('nextBtn');
 
 // Initialize the page
 async function init() {
@@ -139,18 +146,26 @@ function renderTable(data) {
     if (data.length === 0) {
         noDataEl.style.display = 'block';
         document.querySelector('.table-container').style.display = 'none';
-        totalTripsEl.textContent = '0';
+        paginationEl.style.display = 'none';
         return;
     }
 
     noDataEl.style.display = 'none';
     document.querySelector('.table-container').style.display = 'block';
 
-    data.forEach((item, index) => {
+    // Calculate pagination
+    const totalPages = Math.ceil(data.length / itemsPerPage);
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    const endIndex = Math.min(startIndex + itemsPerPage, data.length);
+    const paginatedData = data.slice(startIndex, endIndex);
+
+    // Render rows
+    paginatedData.forEach((item, index) => {
         const row = document.createElement('tr');
+        const globalIndex = startIndex + index + 1;
 
         row.innerHTML = `
-            <td>${index + 1}</td>
+            <td>${globalIndex}</td>
             <td>${formatDateForDisplay(item.ngay_tao || '')}</td>
             <td>${item.bien_kiem_soat || ''}</td>
             <td>${item.ten_khach_hang || ''}</td>
@@ -161,7 +176,24 @@ function renderTable(data) {
         tableBody.appendChild(row);
     });
 
-    totalTripsEl.textContent = data.length;
+    // Update pagination controls
+    updatePaginationControls(data.length, totalPages, startIndex, endIndex);
+}
+
+// Update pagination controls
+function updatePaginationControls(totalItems, totalPages, startIndex, endIndex) {
+    if (totalItems <= itemsPerPage) {
+        paginationEl.style.display = 'none';
+        return;
+    }
+
+    paginationEl.style.display = 'flex';
+    paginationInfoEl.textContent = `Hiển thị ${startIndex + 1}-${endIndex} / ${totalItems} chuyến`;
+    currentPageEl.textContent = currentPage;
+    totalPagesEl.textContent = totalPages;
+
+    prevBtn.disabled = currentPage === 1;
+    nextBtn.disabled = currentPage === totalPages;
 }
 
 // Filter data
@@ -202,6 +234,7 @@ function filterData() {
     }
 
     currentData = filteredData;
+    currentPage = 1; // Reset to first page when filtering
     renderTable(currentData);
 }
 
@@ -222,7 +255,24 @@ function resetFilters() {
     routeSelect.value = '';
     setDefaultDates();
     currentData = [...allData];
+    currentPage = 1;
     renderTable(currentData);
+}
+
+// Pagination handlers
+function goToNextPage() {
+    const totalPages = Math.ceil(currentData.length / itemsPerPage);
+    if (currentPage < totalPages) {
+        currentPage++;
+        renderTable(currentData);
+    }
+}
+
+function goToPrevPage() {
+    if (currentPage > 1) {
+        currentPage--;
+        renderTable(currentData);
+    }
 }
 
 // Attach event listeners
@@ -233,6 +283,10 @@ function attachEventListeners() {
     routeSelect.addEventListener('change', filterData);
     fromDateInput.addEventListener('change', filterData);
     toDateInput.addEventListener('change', filterData);
+
+    // Pagination buttons
+    prevBtn.addEventListener('click', goToPrevPage);
+    nextBtn.addEventListener('click', goToNextPage);
 }
 
 // Initialize when DOM is loaded

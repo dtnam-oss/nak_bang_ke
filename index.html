@@ -61,17 +61,22 @@
                 <tbody id="tableBody">
                     <!-- Data will be inserted here by JavaScript -->
                 </tbody>
-                <tfoot>
-                    <tr class="total-row">
-                        <td colspan="5"><strong>Tổng số chuyến:</strong></td>
-                        <td id="totalTrips"><strong>0</strong></td>
-                    </tr>
-                </tfoot>
             </table>
         </div>
-        
+
         <div id="noData" class="no-data" style="display: none;">
             <p>Không có dữ liệu phù hợp với bộ lọc</p>
+        </div>
+
+        <div class="pagination" id="pagination" style="display: none;">
+            <div class="pagination-info">
+                <span id="paginationInfo">Hiển thị 1-50 / 100 chuyến</span>
+            </div>
+            <div class="pagination-controls">
+                <button class="pagination-btn" id="prevBtn">← Trước</button>
+                <span class="page-number">Trang <span id="currentPage">1</span> / <span id="totalPages">1</span></span>
+                <button class="pagination-btn" id="nextBtn">Sau →</button>
+            </div>
         </div>
     </div>
 
