@@ -43,8 +43,15 @@ function getDataFromSheet() {
       for (var j = 0; j < headers.length; j++) {
         var value = data[i][j];
 
+        // Format date cho cột ngay_tao
+        if (headers[j] === 'ngay_tao' && value instanceof Date) {
+          var day = String(value.getDate()).padStart(2, '0');
+          var month = String(value.getMonth() + 1).padStart(2, '0');
+          var year = value.getFullYear();
+          row[headers[j]] = day + '/' + month + '/' + year;
+        }
         // Parse JSON cho cột chi_tiet_chuyen_di
-        if (headers[j] === 'chi_tiet_chuyen_di' && typeof value === 'string') {
+        else if (headers[j] === 'chi_tiet_chuyen_di' && typeof value === 'string') {
           try {
             row[headers[j]] = JSON.parse(value);
           } catch (e) {

@@ -12,8 +12,6 @@ const plateSelect = document.getElementById('plateSelect');
 const routeSelect = document.getElementById('routeSelect');
 const fromDateInput = document.getElementById('fromDate');
 const toDateInput = document.getElementById('toDate');
-const filterBtn = document.getElementById('filterBtn');
-const resetBtn = document.getElementById('resetBtn');
 const tableBody = document.getElementById('tableBody');
 const totalTripsEl = document.getElementById('totalTrips');
 const noDataEl = document.getElementById('noData');
@@ -229,10 +227,7 @@ function resetFilters() {
 
 // Attach event listeners
 function attachEventListeners() {
-    filterBtn.addEventListener('click', filterData);
-    resetBtn.addEventListener('click', resetFilters);
-
-    // Allow filtering with Enter key
+    // Auto-filter when any filter changes
     customerSelect.addEventListener('change', filterData);
     plateSelect.addEventListener('change', filterData);
     routeSelect.addEventListener('change', filterData);
