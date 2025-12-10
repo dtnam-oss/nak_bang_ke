@@ -322,8 +322,13 @@ function initNavigation() {
                 case 'doi-soat':
                     document.getElementById('doiSoatSection').style.display = 'block';
                     break;
-                case 'nhien-lieu':
                 case 'phuong-tien':
+                    document.getElementById('phuongTienSection').style.display = 'block';
+                    if (typeof initVehiclePage === 'function') {
+                        initVehiclePage();
+                    }
+                    break;
+                case 'nhien-lieu':
                     showNotification(`Trang "${this.textContent}" đang được xây dựng`);
                     // Show doi-soat as default
                     document.getElementById('doiSoatSection').style.display = 'block';

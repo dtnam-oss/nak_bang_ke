@@ -119,6 +119,49 @@
             </div>
         </div>
 
+        <!-- Phương tiện Section -->
+        <div id="phuongTienSection" class="page-section" style="display: none;">
+            <!-- Header với Month Selector -->
+            <div class="vehicle-header">
+                <h2 class="section-title">Tình trạng hoạt động phương tiện</h2>
+                <div class="month-selector">
+                    <button class="month-nav-btn" id="prevMonth">←</button>
+                    <span class="current-month" id="currentMonthDisplay">Tháng 12/2025</span>
+                    <button class="month-nav-btn" id="nextMonth">→</button>
+                </div>
+            </div>
+
+            <!-- Vehicle Status Table -->
+            <div class="vehicle-table-section">
+                <div class="vehicle-table-container">
+                    <table id="vehicleStatusTable" class="vehicle-table">
+                        <thead>
+                            <tr id="vehicleTableHeader">
+                                <th class="sticky-col">Biển kiểm soát</th>
+                                <th class="sticky-col-2">Nhãn</th>
+                                <th class="sticky-col-3">Tình trạng</th>
+                                <th class="sticky-col-4">Trạng thái</th>
+                                <!-- Days will be dynamically added here -->
+                            </tr>
+                        </thead>
+                        <tbody id="vehicleTableBody">
+                            <!-- Data will be inserted here -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Legend -->
+            <div class="vehicle-legend">
+                <h3>Chú thích:</h3>
+                <div class="legend-items">
+                    <span class="legend-item"><span class="legend-color active"></span> Hoạt động</span>
+                    <span class="legend-item"><span class="legend-color inactive"></span> Không hoạt động</span>
+                    <span class="legend-item"><span class="legend-color empty"></span> Chưa có dữ liệu</span>
+                </div>
+            </div>
+        </div>
+
         <!-- Đối soát Section -->
         <div id="doiSoatSection" class="page-section">
         <!-- Filter Section -->
@@ -199,5 +242,6 @@
     <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2"></script>
     <script src="script.js"></script>
     <script src="report.js"></script>
+    <script src="vehicle.js"></script>
 </body>
 </html>

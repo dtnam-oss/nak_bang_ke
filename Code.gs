@@ -19,6 +19,14 @@ function doGet(e) {
       .setMimeType(ContentService.MimeType.JSON);
   }
 
+  // Nếu có parameter 'action=getVehicleData', trả về JSON data từ sheet doi_xe
+  if (e.parameter.action === 'getVehicleData') {
+    var data = getVehicleDataFromSheet();
+    return ContentService
+      .createTextOutput(JSON.stringify(data))
+      .setMimeType(ContentService.MimeType.JSON);
+  }
+
   // Nếu không có parameter, trả về HTML page
   var template = HtmlService.createTemplateFromFile('Index');
   return template
@@ -157,6 +165,43 @@ function getReportDataFromSheet() {
     return jsonData;
   } catch (error) {
     Logger.log('Error getting report data from sheet: ' + error);
+    return [];
+  }
+}
+
+// Hàm lấy dữ liệu phương tiện từ Google Sheets (sheet doi_xe)
+function getVehicleDataFromSheet() {
+  try {
+    var spreadsheet = SpreadsheetApp.openById('18pS9YMZSwZCVBt_anIGn3GN4qFoPpMtALQm4YvMDd-g');
+    var sheet = spreadsheet.getSheetByName('doi_xe');
+    var data = sheet.getDataRange().getValues();
+
+    // Chuyển đổi dữ liệu thành JSON
+    var headers = data[0];
+    var jsonData = [];
+
+    for (var i = 1; i < data.length; i++) {
+      var row = {};
+      for (var j = 0; j < headers.length; j++) {
+        var value = data[i][j];
+
+        // Parse JSON cho cột tinh_trang_hoat_dong
+        if (headers[j] === 'tinh_trang_hoat_dong' && typeof value === 'string') {
+          try {
+            row[headers[j]] = JSON.parse(value);
+          } catch (e) {
+            row[headers[j]] = value;
+          }
+        } else {
+          row[headers[j]] = value;
+        }
+      }
+      jsonData.push(row);
+    }
+
+    return jsonData;
+  } catch (error) {
+    Logger.log('Error getting vehicle data from sheet: ' + error);
     return [];
   }
 }
