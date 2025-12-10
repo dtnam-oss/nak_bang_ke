@@ -8,6 +8,7 @@ async function initVehiclePage() {
     await fetchVehicleData();
     initMonthNavigation();
     renderVehicleTable();
+    initPopup();
 }
 
 // Fetch vehicle data from Google Apps Script
@@ -73,58 +74,29 @@ function updateMonthDisplay() {
 
 // Render vehicle table
 function renderVehicleTable() {
-    const tableHeader = document.getElementById('vehicleTableHeader');
     const tableBody = document.getElementById('vehicleTableBody');
-
-    // Clear existing content
     tableBody.innerHTML = '';
 
     // Get days in current month
     const daysInMonth = new Date(currentYear, currentMonth, 0).getDate();
 
-    // Render header with days
-    renderTableHeader(tableHeader, daysInMonth);
-
     // Render rows
     if (allVehicleData.length === 0) {
         const row = document.createElement('tr');
-        row.innerHTML = `<td colspan="${4 + daysInMonth}" style="text-align: center; padding: 40px;">Không có dữ liệu phương tiện</td>`;
+        row.innerHTML = `<td colspan="7" style="text-align: center; padding: 40px;">Không có dữ liệu phương tiện</td>`;
         tableBody.appendChild(row);
         return;
     }
 
-    allVehicleData.forEach(vehicle => {
-        const row = createVehicleRow(vehicle, daysInMonth);
+    allVehicleData.forEach((vehicle, index) => {
+        const row = createVehicleRow(vehicle, index + 1, daysInMonth);
         tableBody.appendChild(row);
     });
 }
 
-// Render table header
-function renderTableHeader(tableHeader, daysInMonth) {
-    // Remove old day columns
-    const existingDayCols = tableHeader.querySelectorAll('.day-header');
-    existingDayCols.forEach(col => col.remove());
-
-    // Add day columns
-    for (let day = 1; day <= daysInMonth; day++) {
-        const th = document.createElement('th');
-        th.className = 'day-header';
-        th.textContent = day;
-        tableHeader.appendChild(th);
-    }
-}
-
 // Create vehicle row
-function createVehicleRow(vehicle, daysInMonth) {
+function createVehicleRow(vehicle, stt, daysInMonth) {
     const row = document.createElement('tr');
-
-    // Fixed columns
-    row.innerHTML = `
-        <td class="sticky-col">${vehicle.bien_kiem_soat || ''}</td>
-        <td class="sticky-col-2">${vehicle.nhan || ''}</td>
-        <td class="sticky-col-3">${vehicle.tinh_trang || ''}</td>
-        <td class="sticky-col-4">${vehicle.trang_thai_trong_ngay || ''}</td>
-    `;
 
     // Parse activity status JSON
     let activityStatus = {};
@@ -138,60 +110,177 @@ function createVehicleRow(vehicle, daysInMonth) {
         }
     }
 
-    // Add day cells
-    for (let day = 1; day <= daysInMonth; day++) {
-        const dateKey = `${day}/${currentMonth}/${currentYear}`;
-        const td = document.createElement('td');
-        td.className = 'day-cell';
+    // Calculate statistics
+    const stats = calculateActivityStats(activityStatus, daysInMonth);
 
-        // Check if date exists in activity status
-        if (activityStatus[dateKey]) {
-            const dayData = activityStatus[dateKey];
+    // Create row HTML
+    row.innerHTML = `
+        <td>${stt}</td>
+        <td><strong>${vehicle.bien_kiem_soat || ''}</strong></td>
+        <td>${vehicle.nhan || ''}</td>
+        <td>${vehicle.tinh_trang || ''}</td>
+        <td>${vehicle.trang_thai_trong_ngay || ''}</td>
+        <td class="result-cell">
+            <div class="result-stats">
+                <span class="stat-active">✓ ${stats.active} ngày</span>
+                <span class="stat-inactive">✗ ${stats.inactive} ngày</span>
+            </div>
+        </td>
+        <td>
+            <button class="view-detail-btn" data-vehicle='${JSON.stringify(vehicle).replace(/'/g, "&apos;")}'>
+                Xem chi tiết
+            </button>
+        </td>
+    `;
 
-            // Determine cell status
-            if (Object.keys(dayData).length > 0) {
-                // Has data - mark as active
-                td.classList.add('active');
-                td.textContent = '✓';
-                td.title = `${vehicle.bien_kiem_soat} - ${dateKey}: Hoạt động`;
-            } else {
-                // Empty object - no activity
-                td.classList.add('inactive');
-                td.textContent = '✗';
-                td.title = `${vehicle.bien_kiem_soat} - ${dateKey}: Không hoạt động`;
-            }
-        } else {
-            // Date not in data
-            td.classList.add('empty');
-            td.textContent = '-';
-            td.title = `${vehicle.bien_kiem_soat} - ${dateKey}: Chưa có dữ liệu`;
-        }
-
-        // Add click handler
-        td.addEventListener('click', () => {
-            handleDayCellClick(vehicle, dateKey, td);
-        });
-
-        row.appendChild(td);
-    }
+    // Add click handler for detail button
+    const detailBtn = row.querySelector('.view-detail-btn');
+    detailBtn.addEventListener('click', () => {
+        showVehicleDetail(vehicle, activityStatus, daysInMonth);
+    });
 
     return row;
 }
 
-// Handle day cell click
-function handleDayCellClick(vehicle, dateKey, cellElement) {
-    const currentClass = cellElement.classList.contains('active') ? 'active' :
-                        cellElement.classList.contains('inactive') ? 'inactive' : 'empty';
+// Calculate activity statistics
+function calculateActivityStats(activityStatus, daysInMonth) {
+    let active = 0;
+    let inactive = 0;
 
-    let message = `${vehicle.bien_kiem_soat} - ${dateKey}\n`;
+    for (let day = 1; day <= daysInMonth; day++) {
+        const dateKey = `${day}/${currentMonth}/${currentYear}`;
 
-    if (currentClass === 'active') {
-        message += 'Trạng thái: Hoạt động ✓';
-    } else if (currentClass === 'inactive') {
-        message += 'Trạng thái: Không hoạt động ✗';
-    } else {
-        message += 'Trạng thái: Chưa có dữ liệu';
+        if (activityStatus[dateKey]) {
+            const dayData = activityStatus[dateKey];
+            if (Object.keys(dayData).length > 0 && dayData.so_luong_chuyen > 0) {
+                active++;
+            } else {
+                inactive++;
+            }
+        }
     }
 
-    showNotification(message);
+    return { active, inactive };
+}
+
+// Show vehicle detail popup
+function showVehicleDetail(vehicle, activityStatus, daysInMonth) {
+    const popup = document.getElementById('vehicleDetailPopup');
+
+    // Set vehicle info
+    document.getElementById('popupBienKiemSoat').textContent = vehicle.bien_kiem_soat || '';
+    document.getElementById('popupNhan').textContent = vehicle.nhan || '';
+    document.getElementById('popupMonth').textContent = `Tháng ${currentMonth}/${currentYear}`;
+
+    // Render calendar
+    renderPopupCalendar(activityStatus, daysInMonth);
+
+    // Show popup
+    popup.style.display = 'flex';
+}
+
+// Render popup calendar
+function renderPopupCalendar(activityStatus, daysInMonth) {
+    const calendar = document.getElementById('popupCalendar');
+    calendar.innerHTML = '';
+
+    // Create calendar grid
+    const calendarGrid = document.createElement('div');
+    calendarGrid.className = 'popup-calendar-grid';
+
+    // Get first day of month (0 = Sunday, 1 = Monday, etc.)
+    const firstDay = new Date(currentYear, currentMonth - 1, 1).getDay();
+
+    // Add day headers
+    const dayHeaders = ['CN', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7'];
+    dayHeaders.forEach(day => {
+        const header = document.createElement('div');
+        header.className = 'calendar-day-header';
+        header.textContent = day;
+        calendarGrid.appendChild(header);
+    });
+
+    // Add empty cells for days before month starts
+    for (let i = 0; i < firstDay; i++) {
+        const emptyCell = document.createElement('div');
+        emptyCell.className = 'calendar-day-cell empty';
+        calendarGrid.appendChild(emptyCell);
+    }
+
+    // Add day cells
+    for (let day = 1; day <= daysInMonth; day++) {
+        const dateKey = `${day}/${currentMonth}/${currentYear}`;
+        const cell = document.createElement('div');
+        cell.className = 'calendar-day-cell';
+
+        const dayNumber = document.createElement('div');
+        dayNumber.className = 'day-number';
+        dayNumber.textContent = day;
+
+        const dayStatus = document.createElement('div');
+        dayStatus.className = 'day-status';
+
+        // Check activity status
+        if (activityStatus[dateKey]) {
+            const dayData = activityStatus[dateKey];
+            if (Object.keys(dayData).length > 0 && dayData.so_luong_chuyen > 0) {
+                cell.classList.add('active');
+                dayStatus.innerHTML = `<span class="status-icon">✓</span><span class="trip-count">${dayData.so_luong_chuyen} chuyến</span>`;
+            } else {
+                cell.classList.add('inactive');
+                dayStatus.innerHTML = '<span class="status-icon">✗</span><span class="trip-text">Không hoạt động</span>';
+            }
+        } else {
+            cell.classList.add('no-data');
+            dayStatus.innerHTML = '<span class="status-text">-</span>';
+        }
+
+        cell.appendChild(dayNumber);
+        cell.appendChild(dayStatus);
+        calendarGrid.appendChild(cell);
+    }
+
+    calendar.appendChild(calendarGrid);
+
+    // Add summary
+    const summary = document.createElement('div');
+    summary.className = 'calendar-summary';
+
+    const stats = calculateActivityStats(activityStatus, daysInMonth);
+    summary.innerHTML = `
+        <div class="summary-item">
+            <span class="summary-label">Tổng ngày hoạt động:</span>
+            <span class="summary-value active">${stats.active} ngày</span>
+        </div>
+        <div class="summary-item">
+            <span class="summary-label">Tổng ngày không hoạt động:</span>
+            <span class="summary-value inactive">${stats.inactive} ngày</span>
+        </div>
+    `;
+
+    calendar.appendChild(summary);
+}
+
+// Initialize popup
+function initPopup() {
+    const popup = document.getElementById('vehicleDetailPopup');
+    const closeBtn = document.getElementById('closePopupBtn');
+    const overlay = popup.querySelector('.vehicle-popup-overlay');
+
+    // Close on button click
+    closeBtn.addEventListener('click', () => {
+        popup.style.display = 'none';
+    });
+
+    // Close on overlay click
+    overlay.addEventListener('click', () => {
+        popup.style.display = 'none';
+    });
+
+    // Close on Escape key
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && popup.style.display === 'flex') {
+            popup.style.display = 'none';
+        }
+    });
 }

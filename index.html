@@ -136,12 +136,14 @@
                 <div class="vehicle-table-container">
                     <table id="vehicleStatusTable" class="vehicle-table">
                         <thead>
-                            <tr id="vehicleTableHeader">
-                                <th class="sticky-col">Biển kiểm soát</th>
-                                <th class="sticky-col-2">Nhãn</th>
-                                <th class="sticky-col-3">Tình trạng</th>
-                                <th class="sticky-col-4">Trạng thái</th>
-                                <!-- Days will be dynamically added here -->
+                            <tr>
+                                <th>STT</th>
+                                <th>Biển kiểm soát</th>
+                                <th>Nhãn</th>
+                                <th>Tình trạng</th>
+                                <th>Trạng thái</th>
+                                <th>Kết quả</th>
+                                <th>Thao tác</th>
                             </tr>
                         </thead>
                         <tbody id="vehicleTableBody">
@@ -153,11 +155,40 @@
 
             <!-- Legend -->
             <div class="vehicle-legend">
-                <h3>Chú thích:</h3>
+                <h3>Chú thích kết quả:</h3>
                 <div class="legend-items">
                     <span class="legend-item"><span class="legend-color active"></span> Hoạt động</span>
                     <span class="legend-item"><span class="legend-color inactive"></span> Không hoạt động</span>
-                    <span class="legend-item"><span class="legend-color empty"></span> Chưa có dữ liệu</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Vehicle Detail Popup -->
+        <div id="vehicleDetailPopup" class="vehicle-popup" style="display: none;">
+            <div class="vehicle-popup-overlay"></div>
+            <div class="vehicle-popup-content">
+                <div class="vehicle-popup-header">
+                    <h3 id="popupVehicleTitle">Chi tiết hoạt động phương tiện</h3>
+                    <button class="vehicle-popup-close" id="closePopupBtn">×</button>
+                </div>
+                <div class="vehicle-popup-body">
+                    <div class="vehicle-popup-info">
+                        <div class="info-item">
+                            <span class="info-label">Biển kiểm soát:</span>
+                            <span class="info-value" id="popupBienKiemSoat"></span>
+                        </div>
+                        <div class="info-item">
+                            <span class="info-label">Nhãn:</span>
+                            <span class="info-value" id="popupNhan"></span>
+                        </div>
+                        <div class="info-item">
+                            <span class="info-label">Tháng:</span>
+                            <span class="info-value" id="popupMonth"></span>
+                        </div>
+                    </div>
+                    <div class="vehicle-popup-calendar" id="popupCalendar">
+                        <!-- Calendar grid will be inserted here -->
+                    </div>
                 </div>
             </div>
         </div>
