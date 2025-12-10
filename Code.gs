@@ -309,3 +309,56 @@ function testUpdateVehicleStatus() {
   Logger.log(JSON.stringify(result));
   return result;
 }
+
+// Hàm debug để kiểm tra cấu trúc sheet
+function debugSheetStructure() {
+  try {
+    var spreadsheet = SpreadsheetApp.openById('1fzepYrS-o5zc01h7nQFzJSOwagoTvOgoiDQHrTLB12E');
+    var sheet = spreadsheet.getSheetByName('phuong_tien');
+
+    if (!sheet) {
+      Logger.log('Sheet "phuong_tien" not found!');
+      Logger.log('Available sheets: ' + spreadsheet.getSheets().map(s => s.getName()).join(', '));
+      return;
+    }
+
+    var data = sheet.getDataRange().getValues();
+    var headers = data[0];
+
+    Logger.log('=== SHEET HEADERS ===');
+    Logger.log('Total columns: ' + headers.length);
+    for (var i = 0; i < headers.length; i++) {
+      Logger.log('Column ' + i + ': "' + headers[i] + '"');
+    }
+
+    Logger.log('\n=== FIRST 5 ROWS OF DATA ===');
+    for (var row = 1; row <= Math.min(5, data.length - 1); row++) {
+      Logger.log('\nRow ' + (row + 1) + ':');
+      for (var col = 0; col < headers.length; col++) {
+        Logger.log('  ' + headers[col] + ': "' + data[row][col] + '"');
+      }
+    }
+
+    // Tìm cột tai_xe_theo_xe
+    var taiXeColIndex = -1;
+    for (var i = 0; i < headers.length; i++) {
+      if (headers[i] === 'tai_xe_theo_xe') {
+        taiXeColIndex = i;
+        break;
+      }
+    }
+
+    if (taiXeColIndex !== -1) {
+      Logger.log('\n=== ALL VALUES IN tai_xe_theo_xe COLUMN ===');
+      for (var row = 1; row < data.length; row++) {
+        var value = data[row][taiXeColIndex];
+        Logger.log('Row ' + (row + 1) + ': "' + value + '"');
+      }
+    } else {
+      Logger.log('\nColumn "tai_xe_theo_xe" NOT FOUND!');
+    }
+
+  } catch (error) {
+    Logger.log('Error: ' + error);
+  }
+}
