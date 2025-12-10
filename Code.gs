@@ -44,25 +44,56 @@ function doPost(e) {
     // Parse JSON data từ request body
     var requestData = JSON.parse(e.postData.contents);
 
-    // Lấy parameters
-    var ma_tai_xe = requestData.ma_tai_xe; // Có thể là string hoặc array
-    var trang_thai_chuyen_di = requestData.trang_thai_chuyen_di;
+    // Kiểm tra loại action
+    var action = requestData.action;
 
-    // Kiểm tra dữ liệu đầu vào
-    if (!ma_tai_xe || !trang_thai_chuyen_di) {
+    // Action 1: Cập nhật trạng thái phương tiện (webhook cũ)
+    if (action === 'updateStatus' || (requestData.ma_tai_xe && requestData.trang_thai_chuyen_di)) {
+      var ma_tai_xe = requestData.ma_tai_xe;
+      var trang_thai_chuyen_di = requestData.trang_thai_chuyen_di;
+
+      if (!ma_tai_xe || !trang_thai_chuyen_di) {
+        return ContentService
+          .createTextOutput(JSON.stringify({
+            success: false,
+            message: 'Missing required parameters: ma_tai_xe or trang_thai_chuyen_di'
+          }))
+          .setMimeType(ContentService.MimeType.JSON);
+      }
+
+      var result = updateVehicleStatus(ma_tai_xe, trang_thai_chuyen_di);
       return ContentService
-        .createTextOutput(JSON.stringify({
-          success: false,
-          message: 'Missing required parameters: ma_tai_xe or trang_thai_chuyen_di'
-        }))
+        .createTextOutput(JSON.stringify(result))
         .setMimeType(ContentService.MimeType.JSON);
     }
 
-    // Cập nhật trạng thái phương tiện
-    var result = updateVehicleStatus(ma_tai_xe, trang_thai_chuyen_di);
+    // Action 2: Cập nhật tình trạng hoạt động (webhook mới)
+    if (action === 'updateActivity' || (requestData.bien_kiem_soat && requestData.ngay_tao && requestData.so_luong_chuyen !== undefined)) {
+      var bien_kiem_soat = requestData.bien_kiem_soat;
+      var ngay_tao = requestData.ngay_tao;
+      var so_luong_chuyen = requestData.so_luong_chuyen;
 
+      if (!bien_kiem_soat || !ngay_tao || so_luong_chuyen === undefined) {
+        return ContentService
+          .createTextOutput(JSON.stringify({
+            success: false,
+            message: 'Missing required parameters: bien_kiem_soat, ngay_tao, or so_luong_chuyen'
+          }))
+          .setMimeType(ContentService.MimeType.JSON);
+      }
+
+      var result = updateVehicleActivity(bien_kiem_soat, ngay_tao, so_luong_chuyen);
+      return ContentService
+        .createTextOutput(JSON.stringify(result))
+        .setMimeType(ContentService.MimeType.JSON);
+    }
+
+    // Không xác định được action
     return ContentService
-      .createTextOutput(JSON.stringify(result))
+      .createTextOutput(JSON.stringify({
+        success: false,
+        message: 'Invalid action or missing parameters'
+      }))
       .setMimeType(ContentService.MimeType.JSON);
 
   } catch (error) {
@@ -351,6 +382,129 @@ function testFunction() {
 // Hàm test updateVehicleStatus
 function testUpdateVehicleStatus() {
   var result = updateVehicleStatus(['LX216', 'LX215'], 'Đang giao hàng');
+  Logger.log(JSON.stringify(result));
+  return result;
+}
+
+// Hàm cập nhật tình trạng hoạt động phương tiện vào sheet doi_xe
+function updateVehicleActivity(bien_kiem_soat, ngay_tao, so_luong_chuyen) {
+  try {
+    // Mở Google Sheets
+    var spreadsheet = SpreadsheetApp.openById('18pS9YMZSwZCVBt_anIGn3GN4qFoPpMtALQm4YvMDd-g');
+    var sheet = spreadsheet.getSheetByName('doi_xe');
+
+    if (!sheet) {
+      return {
+        success: false,
+        message: 'Sheet "doi_xe" not found'
+      };
+    }
+
+    // Lấy tất cả dữ liệu từ sheet
+    var data = sheet.getDataRange().getValues();
+    var headers = data[0];
+
+    // Tìm index của các cột
+    var bienKiemSoatColIndex = -1;
+    var tinhTrangHoatDongColIndex = -1;
+
+    for (var i = 0; i < headers.length; i++) {
+      if (headers[i] === 'bien_kiem_soat') {
+        bienKiemSoatColIndex = i;
+      }
+      if (headers[i] === 'tinh_trang_hoat_dong') {
+        tinhTrangHoatDongColIndex = i;
+      }
+    }
+
+    // Kiểm tra nếu không tìm thấy cột
+    if (bienKiemSoatColIndex === -1 || tinhTrangHoatDongColIndex === -1) {
+      return {
+        success: false,
+        message: 'Required columns not found. Looking for: bien_kiem_soat, tinh_trang_hoat_dong'
+      };
+    }
+
+    // Tìm dòng có bien_kiem_soat tương ứng
+    var targetRow = -1;
+    for (var row = 1; row < data.length; row++) {
+      var currentBienKiemSoat = data[row][bienKiemSoatColIndex];
+      if (currentBienKiemSoat && currentBienKiemSoat.toString().trim() === bien_kiem_soat.toString().trim()) {
+        targetRow = row;
+        break;
+      }
+    }
+
+    if (targetRow === -1) {
+      return {
+        success: false,
+        message: 'Vehicle with bien_kiem_soat "' + bien_kiem_soat + '" not found'
+      };
+    }
+
+    // Lấy giá trị hiện tại của tinh_trang_hoat_dong
+    var currentValue = data[targetRow][tinhTrangHoatDongColIndex];
+    var activityData = {};
+
+    // Parse JSON nếu đã có dữ liệu
+    if (currentValue && typeof currentValue === 'string' && currentValue.trim() !== '') {
+      try {
+        activityData = JSON.parse(currentValue);
+      } catch (e) {
+        Logger.log('Error parsing existing tinh_trang_hoat_dong: ' + e);
+        activityData = {};
+      }
+    }
+
+    // Cập nhật dữ liệu cho ngày tạo
+    // Format ngay_tao về dạng DD/MM/YYYY nếu cần
+    var dateKey = ngay_tao;
+    if (dateKey.includes('-')) {
+      // Convert from YYYY-MM-DD to DD/MM/YYYY
+      var parts = dateKey.split('-');
+      dateKey = parts[2] + '/' + parts[1] + '/' + parts[0];
+    }
+
+    // Cập nhật hoặc thêm mới
+    if (so_luong_chuyen > 0) {
+      // Có hoạt động
+      activityData[dateKey] = {
+        so_luong_chuyen: so_luong_chuyen
+      };
+    } else {
+      // Không có hoạt động
+      activityData[dateKey] = {};
+    }
+
+    // Chuyển đổi object thành JSON string
+    var jsonString = JSON.stringify(activityData);
+
+    // Ghi vào sheet (row + 1 vì sheet bắt đầu từ 1)
+    sheet.getRange(targetRow + 1, tinhTrangHoatDongColIndex + 1).setValue(jsonString);
+
+    Logger.log('Updated vehicle activity - bien_kiem_soat: ' + bien_kiem_soat + ' - date: ' + dateKey + ' - trips: ' + so_luong_chuyen);
+
+    return {
+      success: true,
+      message: 'Updated vehicle activity successfully',
+      bien_kiem_soat: bien_kiem_soat,
+      ngay_tao: dateKey,
+      so_luong_chuyen: so_luong_chuyen,
+      row: targetRow + 1
+    };
+
+  } catch (error) {
+    Logger.log('Error in updateVehicleActivity: ' + error);
+    return {
+      success: false,
+      message: 'Error: ' + error.toString()
+    };
+  }
+}
+
+// Hàm test updateVehicleActivity
+function testUpdateVehicleActivity() {
+  var result = updateVehicleActivity('51C-123.45', '10/12/2025', 5);
   Logger.log(JSON.stringify(result));
   return result;
 }

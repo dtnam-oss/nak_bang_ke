@@ -2,7 +2,11 @@
 
 ## Tổng quan
 
-Hệ thống webhook cho phép AppSheet tự động cập nhật trạng thái phương tiện trong Google Sheets thông qua HTTP POST request.
+Hệ thống webhook cho phép AppSheet tự động cập nhật dữ liệu phương tiện trong Google Sheets thông qua HTTP POST request.
+
+**Có 2 loại webhook:**
+1. **Webhook 1**: Cập nhật trạng thái phương tiện (sheet: `phuong_tien`)
+2. **Webhook 2**: Cập nhật tình trạng hoạt động phương tiện (sheet: `doi_xe`)
 
 ## Cấu hình
 
@@ -176,6 +180,113 @@ Chạy function này để kiểm tra xem automation có hoạt động không.
 - Web app được deploy với "Execute as: Me" nên chạy với quyền của người deploy
 - "Who has access: Anyone" cho phép AppSheet call webhook không cần authentication
 - Nên thêm API key hoặc secret token để bảo mật nếu cần
+
+## Webhook 2: Cập nhật tình trạng hoạt động phương tiện
+
+### Mục đích
+
+Cập nhật cột `tinh_trang_hoat_dong` trong sheet `doi_xe` với số lượng chuyến đi theo ngày.
+
+### Cấu hình AppSheet
+
+**Body Template:**
+```json
+{
+  "action": "updateActivity",
+  "bien_kiem_soat": <<[bien_kiem_soat]>>,
+  "ngay_tao": <<[ngay_tao]>>,
+  "so_luong_chuyen": <<COUNT(SELECT(chi_tiet_chuyen_di[ma_chuyen_di],[ma_chuyen_di]=[_THISROW].[ma_chuyen_di]))>>
+}
+```
+
+### Request Format
+
+**POST URL:** `https://script.google.com/macros/s/YOUR_DEPLOYMENT_ID/exec`
+
+**Headers:**
+```
+Content-Type: application/json
+```
+
+**Body (JSON):**
+```json
+{
+  "action": "updateActivity",
+  "bien_kiem_soat": "51C-123.45",
+  "ngay_tao": "10/12/2025",
+  "so_luong_chuyen": 5
+}
+```
+
+### Response Format
+
+**Success:**
+```json
+{
+  "success": true,
+  "message": "Updated vehicle activity successfully",
+  "bien_kiem_soat": "51C-123.45",
+  "ngay_tao": "10/12/2025",
+  "so_luong_chuyen": 5,
+  "row": 3
+}
+```
+
+**Error:**
+```json
+{
+  "success": false,
+  "message": "Vehicle with bien_kiem_soat \"51C-999.99\" not found"
+}
+```
+
+### Cách hoạt động
+
+1. **AppSheet** kích hoạt automation khi có sự kiện (VD: tạo/cập nhật chuyến đi)
+2. AppSheet gửi **POST request** với:
+   - `bien_kiem_soat`: Biển kiểm soát xe
+   - `ngay_tao`: Ngày tạo (DD/MM/YYYY hoặc YYYY-MM-DD)
+   - `so_luong_chuyen`: Số lượng chuyến đi trong ngày
+3. Script tìm kiếm trong sheet `doi_xe`:
+   - Lookup dòng có `bien_kiem_soat` tương ứng
+   - Parse JSON hiện tại từ cột `tinh_trang_hoat_dong`
+   - Cập nhật hoặc thêm mới key = `ngay_tao`, value = `{so_luong_chuyen: ...}`
+   - Ghi JSON string mới vào cột `tinh_trang_hoat_dong`
+4. Trả về kết quả cho AppSheet
+
+### Ví dụ Logic
+
+**Input:**
+```json
+{
+  "action": "updateActivity",
+  "bien_kiem_soat": "51C-123.45",
+  "ngay_tao": "10/12/2025",
+  "so_luong_chuyen": 3
+}
+```
+
+**Dữ liệu hiện tại trong sheet `doi_xe`:**
+
+| bien_kiem_soat | tinh_trang_hoat_dong |
+|---------------|---------------------|
+| 51C-123.45    | `{"09/12/2025": {"so_luong_chuyen": 5}}` |
+
+**Sau khi cập nhật:**
+
+| bien_kiem_soat | tinh_trang_hoat_dong |
+|---------------|---------------------|
+| 51C-123.45    | `{"09/12/2025": {"so_luong_chuyen": 5}, "10/12/2025": {"so_luong_chuyen": 3}}` |
+
+### Test Function
+
+```javascript
+function testUpdateVehicleActivity() {
+  var result = updateVehicleActivity('51C-123.45', '10/12/2025', 5);
+  Logger.log(JSON.stringify(result));
+  return result;
+}
+```
 
 ## Logs
 
