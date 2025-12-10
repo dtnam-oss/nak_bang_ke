@@ -152,19 +152,27 @@ function calculateActivityStats(activityStatus, daysInMonth) {
 
     console.log('Calculating stats for month:', currentMonth, currentYear);
     console.log('Activity status:', activityStatus);
+    console.log('Days in month:', daysInMonth);
 
     for (let day = 1; day <= daysInMonth; day++) {
         const dateKey = `${day}/${currentMonth}/${currentYear}`;
 
-        if (activityStatus[dateKey]) {
+        if (activityStatus[dateKey] !== undefined) {
             const dayData = activityStatus[dateKey];
-            if (Object.keys(dayData).length > 0 && dayData.so_luong_chuyen > 0) {
+
+            // Check if has so_luong_chuyen or any trip data
+            const hasTripData = dayData.so_luong_chuyen && dayData.so_luong_chuyen > 0;
+            const hasOtherData = Object.keys(dayData).length > 0 && !dayData.so_luong_chuyen;
+
+            if (hasTripData || hasOtherData) {
                 active++;
-                console.log(`Day ${day}: Active (${dayData.so_luong_chuyen} trips)`);
+                console.log(`Day ${day}: Active`, dayData);
             } else {
                 inactive++;
-                console.log(`Day ${day}: Inactive`);
+                console.log(`Day ${day}: Inactive (empty)`, dayData);
             }
+        } else {
+            console.log(`Day ${day}: No data`);
         }
     }
 
