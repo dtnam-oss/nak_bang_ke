@@ -15,6 +15,7 @@ async function initVehiclePage() {
 async function fetchVehicleData() {
     try {
         const url = `${WEB_APP_URL}?action=getVehicleData`;
+        console.log('Fetching vehicle data from:', url);
         const response = await fetch(url);
 
         if (!response.ok) {
@@ -22,9 +23,11 @@ async function fetchVehicleData() {
         }
 
         const data = await response.json();
+        console.log('Vehicle data received:', data);
 
         if (Array.isArray(data) && data.length > 0) {
             allVehicleData = data;
+            console.log('Total vehicles:', data.length);
         } else {
             allVehicleData = [];
         }
@@ -147,6 +150,9 @@ function calculateActivityStats(activityStatus, daysInMonth) {
     let active = 0;
     let inactive = 0;
 
+    console.log('Calculating stats for month:', currentMonth, currentYear);
+    console.log('Activity status:', activityStatus);
+
     for (let day = 1; day <= daysInMonth; day++) {
         const dateKey = `${day}/${currentMonth}/${currentYear}`;
 
@@ -154,12 +160,15 @@ function calculateActivityStats(activityStatus, daysInMonth) {
             const dayData = activityStatus[dateKey];
             if (Object.keys(dayData).length > 0 && dayData.so_luong_chuyen > 0) {
                 active++;
+                console.log(`Day ${day}: Active (${dayData.so_luong_chuyen} trips)`);
             } else {
                 inactive++;
+                console.log(`Day ${day}: Inactive`);
             }
         }
     }
 
+    console.log('Final stats:', { active, inactive });
     return { active, inactive };
 }
 
