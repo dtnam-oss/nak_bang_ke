@@ -281,9 +281,7 @@ function displayJNTDataTheoTuyen(data) {
         const routeGroups = {};
 
         vehicle.chi_tiet_chuyen_di.forEach(trip => {
-            const route = Array.isArray(trip.diem_di_diem_den)
-                ? trip.diem_di_diem_den.join(' - ')
-                : trip.diem_di_diem_den || 'Không xác định';
+            const route = trip.lo_trinh_doi_soat || 'Không xác định';
 
             if (!routeGroups[route]) {
                 routeGroups[route] = {
@@ -293,12 +291,18 @@ function displayJNTDataTheoTuyen(data) {
                 };
             }
 
-            // Assume first half are "tem chiều đi", second half are "tem chiều về"
+            // Split ma_tem by comma: first value = tem chiều đi, second value = tem chiều về
             const maTems = Array.isArray(trip.ma_tem) ? trip.ma_tem : [trip.ma_tem];
-            const midPoint = Math.ceil(maTems.length / 2);
 
-            routeGroups[route].temDi.push(...maTems.slice(0, midPoint));
-            routeGroups[route].temVe.push(...maTems.slice(midPoint));
+            maTems.forEach(maTem => {
+                const parts = maTem.toString().split(',').map(p => p.trim());
+                if (parts.length >= 1 && parts[0]) {
+                    routeGroups[route].temDi.push(parts[0]);
+                }
+                if (parts.length >= 2 && parts[1]) {
+                    routeGroups[route].temVe.push(parts[1]);
+                }
+            });
 
             if (trip.the_tich) {
                 routeGroups[route].theTich.push(trip.the_tich);
@@ -474,9 +478,7 @@ async function exportJNTToExcel() {
                 const routeGroups = {};
 
                 vehicle.chi_tiet_chuyen_di.forEach(trip => {
-                    const route = Array.isArray(trip.diem_di_diem_den)
-                        ? trip.diem_di_diem_den.join(' - ')
-                        : trip.diem_di_diem_den || 'Không xác định';
+                    const route = trip.lo_trinh_doi_soat || 'Không xác định';
 
                     if (!routeGroups[route]) {
                         routeGroups[route] = {
@@ -486,12 +488,18 @@ async function exportJNTToExcel() {
                         };
                     }
 
-                    // Assume first half are "tem chiều đi", second half are "tem chiều về"
+                    // Split ma_tem by comma: first value = tem chiều đi, second value = tem chiều về
                     const maTems = Array.isArray(trip.ma_tem) ? trip.ma_tem : [trip.ma_tem];
-                    const midPoint = Math.ceil(maTems.length / 2);
 
-                    routeGroups[route].temDi.push(...maTems.slice(0, midPoint));
-                    routeGroups[route].temVe.push(...maTems.slice(midPoint));
+                    maTems.forEach(maTem => {
+                        const parts = maTem.toString().split(',').map(p => p.trim());
+                        if (parts.length >= 1 && parts[0]) {
+                            routeGroups[route].temDi.push(parts[0]);
+                        }
+                        if (parts.length >= 2 && parts[1]) {
+                            routeGroups[route].temVe.push(parts[1]);
+                        }
+                    });
 
                     if (trip.the_tich) {
                         routeGroups[route].theTich.push(trip.the_tich);
