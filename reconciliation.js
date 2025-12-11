@@ -48,9 +48,12 @@ async function loadJNTData() {
     showJNTLoading(true);
 
     try {
+        // Get the current script URL (works for Google Apps Script Web Apps)
+        const scriptUrl = window.location.href.split('?')[0];
+
         // Call Google Apps Script để lấy dữ liệu
         const response = await fetch(
-            `${window.location.origin}?action=getJNTReportData`
+            `${scriptUrl}?action=getJNTReportData`
         );
 
         if (!response.ok) {
@@ -58,6 +61,16 @@ async function loadJNTData() {
         }
 
         const data = await response.json();
+        console.log('Loaded J&T data:', data);
+
+        // Check if data is empty
+        if (!data || Object.keys(data).length === 0) {
+            console.warn('No J&T data available');
+            showJNTNoData(true);
+            showJNTLoading(false);
+            return;
+        }
+
         jntReportData = data;
 
         // Populate filters
@@ -65,7 +78,10 @@ async function loadJNTData() {
 
         // Set default date to today
         const today = new Date().toISOString().split('T')[0];
-        document.getElementById('jntDateSelect').value = today;
+        const dateSelect = document.getElementById('jntDateSelect');
+        if (dateSelect) {
+            dateSelect.value = today;
+        }
 
         // Apply initial filter
         applyJNTFilter();
