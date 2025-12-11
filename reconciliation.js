@@ -345,9 +345,9 @@ function showJNTNoData(show) {
 // ===== EXPORT TO EXCEL =====
 
 /**
- * Xuất dữ liệu J&T ra file Excel
+ * Xuất dữ liệu J&T ra file Excel sử dụng ExcelJS
  */
-function exportJNTToExcel() {
+async function exportJNTToExcel() {
     if (!jntFilteredData || jntFilteredData.length === 0) {
         alert('Không có dữ liệu để xuất. Vui lòng chọn bộ lọc và có dữ liệu hiển thị.');
         return;
@@ -358,17 +358,26 @@ function exportJNTToExcel() {
         const displayType = document.getElementById('jntDisplayTypeSelect').value;
         const selectedDate = document.getElementById('jntDateSelect').value || 'all';
 
-        let excelData = [];
-        let sheetName = '';
         let fileName = '';
+        
+        // Tạo workbook mới
+        const workbook = new ExcelJS.Workbook();
+        const worksheet = workbook.addWorksheet('J&T Report');
 
         if (displayType === 'theo-ca') {
             // Xuất dữ liệu theo ca
-            sheetName = 'J&T Theo Ca';
             fileName = `JNT_TheoCa_${selectedDate}.xlsx`;
 
-            // Tạo header
-            excelData.push(['STT', 'Ngày', 'Biển Số', 'Mã Tem', 'Điểm đi - Điểm đến', 'Thể tích', 'Loại ca']);
+            // Định nghĩa cột
+            worksheet.columns = [
+                { header: 'STT', key: 'stt', width: 5 },
+                { header: 'Ngày', key: 'ngay', width: 12 },
+                { header: 'Biển Số', key: 'bien_so', width: 12 },
+                { header: 'Mã Tem', key: 'ma_tem', width: 30 },
+                { header: 'Điểm đi - Điểm đến', key: 'diem_di_den', width: 50 },
+                { header: 'Thể tích', key: 'the_tich', width: 15 },
+                { header: 'Loại ca', key: 'loai_ca', width: 20 }
+            ];
 
             // Thêm dữ liệu
             let stt = 1;
@@ -411,25 +420,36 @@ function exportJNTToExcel() {
                 const theTich = allTheTich.length > 0 ? allTheTich[0] : ''; // Lấy thể tích đầu tiên
                 const loaiCa = allLoaiCa.length > 0 ? allLoaiCa[0] : ''; // Lấy loại ca đầu tiên
 
-                // Thêm dòng vào Excel
-                excelData.push([
-                    stt++,
-                    vehicle.ngay,
-                    vehicle.bien_so,
-                    maTem,
-                    diemDiDen,
-                    theTich,
-                    loaiCa
-                ]);
+                // Thêm dòng vào worksheet
+                const row = worksheet.addRow({
+                    stt: stt++,
+                    ngay: vehicle.ngay,
+                    bien_so: vehicle.bien_so,
+                    ma_tem: maTem,
+                    diem_di_den: diemDiDen,
+                    the_tich: theTich,
+                    loai_ca: loaiCa
+                });
+
+                // Thiết lập wrapText cho các ô có nội dung xuống dòng
+                row.getCell('ma_tem').alignment = { wrapText: true, vertical: 'top' };
+                row.getCell('diem_di_den').alignment = { wrapText: true, vertical: 'top' };
             });
 
         } else {
             // Xuất dữ liệu theo tuyến
-            sheetName = 'J&T Theo Tuyến';
             fileName = `JNT_TheoTuyen_${selectedDate}.xlsx`;
 
-            // Tạo header
-            excelData.push(['STT', 'Ngày', 'Biển Số', 'Điểm đi - Điểm đến', 'Tem chiều đi', 'Tem chiều về', 'Thể tích']);
+            // Định nghĩa cột
+            worksheet.columns = [
+                { header: 'STT', key: 'stt', width: 5 },
+                { header: 'Ngày', key: 'ngay', width: 12 },
+                { header: 'Biển Số', key: 'bien_so', width: 12 },
+                { header: 'Điểm đi - Điểm đến', key: 'diem_di_den', width: 30 },
+                { header: 'Tem chiều đi', key: 'tem_di', width: 30 },
+                { header: 'Tem chiều về', key: 'tem_ve', width: 30 },
+                { header: 'Thể tích', key: 'the_tich', width: 15 }
+            ];
 
             // Thêm dữ liệu
             let stt = 1;
@@ -465,53 +485,32 @@ function exportJNTToExcel() {
                 // Thêm dòng cho từng tuyến
                 for (const route in routeGroups) {
                     const group = routeGroups[route];
-                    excelData.push([
-                        stt++,
-                        vehicle.ngay,
-                        vehicle.bien_so,
-                        route,
-                        group.temDi.join(', '),
-                        group.temVe.join(', '),
-                        group.theTich.join(', ')
-                    ]);
+                    worksheet.addRow({
+                        stt: stt++,
+                        ngay: vehicle.ngay,
+                        bien_so: vehicle.bien_so,
+                        diem_di_den: route,
+                        tem_di: group.temDi.join(', '),
+                        tem_ve: group.temVe.join(', '),
+                        the_tich: group.theTich.join(', ')
+                    });
                 }
             });
         }
 
-        // Tạo workbook và worksheet
-        const wb = XLSX.utils.book_new();
-        const ws = XLSX.utils.aoa_to_sheet(excelData);
-
-        // Định dạng độ rộng cột
-        const colWidths = [
-            { wch: 5 },  // STT
-            { wch: 12 }, // Ngày
-            { wch: 12 }, // Biển Số
-            { wch: 30 }, // Cột 4
-            { wch: 50 }, // Cột 5 - tăng độ rộng cho điểm đi-đến
-            { wch: 15 }, // Cột 6
-            { wch: 20 }  // Cột 7
-        ];
-        ws['!cols'] = colWidths;
-
-        // Thiết lập wrapText cho tất cả các ô để xuống dòng
-        const range = XLSX.utils.decode_range(ws['!ref']);
-        for (let R = range.s.r; R <= range.e.r; ++R) {
-            for (let C = range.s.c; C <= range.e.c; ++C) {
-                const cellAddress = XLSX.utils.encode_cell({ r: R, c: C });
-                if (!ws[cellAddress]) continue;
-                
-                // Thiết lập style wrapText cho tất cả các ô
-                if (!ws[cellAddress].s) ws[cellAddress].s = {};
-                ws[cellAddress].s.alignment = { wrapText: true, vertical: 'top' };
-            }
-        }
-
-        // Thêm worksheet vào workbook
-        XLSX.utils.book_append_sheet(wb, ws, sheetName);
+        // Định dạng header
+        worksheet.getRow(1).font = { bold: true };
+        worksheet.getRow(1).alignment = { vertical: 'middle', horizontal: 'center' };
 
         // Xuất file
-        XLSX.writeFile(wb, fileName);
+        const buffer = await workbook.xlsx.writeBuffer();
+        const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = fileName;
+        a.click();
+        window.URL.revokeObjectURL(url);
 
         console.log('Đã xuất file Excel:', fileName);
 
