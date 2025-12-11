@@ -285,27 +285,41 @@ function displayJNTDataTheoTuyen(data) {
 
             if (!routeGroups[route]) {
                 routeGroups[route] = {
-                    temDi: [],
-                    temVe: [],
+                    maTems: [], // Lưu tất cả ma_tem
                     theTich: []
                 };
             }
 
-            // Split ma_tem by comma: first value = tem chiều đi, second value = tem chiều về
+            // Thêm ma_tem vào array
             if (trip.ma_tem) {
-                const parts = trip.ma_tem.toString().split(',').map(p => p.trim());
-                if (parts.length >= 1 && parts[0]) {
-                    routeGroups[route].temDi.push(parts[0]);
-                }
-                if (parts.length >= 2 && parts[1]) {
-                    routeGroups[route].temVe.push(parts[1]);
-                }
+                routeGroups[route].maTems.push(trip.ma_tem.toString().trim());
             }
 
             if (trip.the_tich) {
                 routeGroups[route].theTich.push(trip.the_tich);
             }
         });
+
+        // Xử lý logic phân chia tem chiều đi/về sau khi đã gom hết dữ liệu
+        for (const route in routeGroups) {
+            const group = routeGroups[route];
+
+            // Nếu có 2 ma_tem: đầu tiên là chiều đi, thứ hai là chiều về
+            if (group.maTems.length >= 2) {
+                group.temDi = [group.maTems[0]];
+                group.temVe = [group.maTems[1]];
+            }
+            // Nếu chỉ có 1 ma_tem: ghi vào chiều đi
+            else if (group.maTems.length === 1) {
+                group.temDi = [group.maTems[0]];
+                group.temVe = [];
+            }
+            // Nếu không có ma_tem nào
+            else {
+                group.temDi = [];
+                group.temVe = [];
+            }
+        }
 
         // Display grouped data
         for (const route in routeGroups) {
@@ -480,27 +494,41 @@ async function exportJNTToExcel() {
 
                     if (!routeGroups[route]) {
                         routeGroups[route] = {
-                            temDi: [],
-                            temVe: [],
+                            maTems: [], // Lưu tất cả ma_tem
                             theTich: []
                         };
                     }
 
-                    // Split ma_tem by comma: first value = tem chiều đi, second value = tem chiều về
+                    // Thêm ma_tem vào array
                     if (trip.ma_tem) {
-                        const parts = trip.ma_tem.toString().split(',').map(p => p.trim());
-                        if (parts.length >= 1 && parts[0]) {
-                            routeGroups[route].temDi.push(parts[0]);
-                        }
-                        if (parts.length >= 2 && parts[1]) {
-                            routeGroups[route].temVe.push(parts[1]);
-                        }
+                        routeGroups[route].maTems.push(trip.ma_tem.toString().trim());
                     }
 
                     if (trip.the_tich) {
                         routeGroups[route].theTich.push(trip.the_tich);
                     }
                 });
+
+                // Xử lý logic phân chia tem chiều đi/về sau khi đã gom hết dữ liệu
+                for (const route in routeGroups) {
+                    const group = routeGroups[route];
+
+                    // Nếu có 2 ma_tem: đầu tiên là chiều đi, thứ hai là chiều về
+                    if (group.maTems.length >= 2) {
+                        group.temDi = [group.maTems[0]];
+                        group.temVe = [group.maTems[1]];
+                    }
+                    // Nếu chỉ có 1 ma_tem: ghi vào chiều đi
+                    else if (group.maTems.length === 1) {
+                        group.temDi = [group.maTems[0]];
+                        group.temVe = [];
+                    }
+                    // Nếu không có ma_tem nào
+                    else {
+                        group.temDi = [];
+                        group.temVe = [];
+                    }
+                }
 
                 // Thêm dòng cho từng tuyến
                 for (const route in routeGroups) {
