@@ -646,7 +646,8 @@ function createJNTReport(sheetNameSource, sheetNameTarget) {
       'tai_trong_tinh_phi',
       'loai_ca',
       'ma_khach_hang',
-      'loai_chuyen'
+      'loai_chuyen',
+      'lo_trinh_doi_soat'
     ]);
 
     // Kiểm tra các cột bắt buộc
@@ -752,6 +753,7 @@ function buildNestedReportData(data, colIndexes) {
     var loaiCa = row[colIndexes.loai_ca];
     var maKhachHang = row[colIndexes.ma_khach_hang];
     var loaiChuyen = row[colIndexes.loai_chuyen];
+    var loTrinhDoiSoat = colIndexes.lo_trinh_doi_soat !== -1 ? row[colIndexes.lo_trinh_doi_soat] : '';
 
     // Bỏ qua dòng không có ngày hoặc biển số
     if (!ngayChuyen || !bienSo) {
@@ -805,7 +807,8 @@ function buildNestedReportData(data, colIndexes) {
       ma_tem: maTems,
       diem_di_diem_den: diemDiDenParsed,
       the_tich: theTich || '',
-      loai_ca: loaiCa || ''
+      loai_ca: loaiCa || '',
+      lo_trinh_doi_soat: loTrinhDoiSoat || ''
     });
 
     // Cập nhật tổng số chuyến
