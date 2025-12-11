@@ -863,6 +863,13 @@ body {
     flex-direction: column;
 }
 
+/* Action buttons inline - không flex để ở cùng hàng */
+.filter-item.action-buttons-inline {
+    flex: 0 0 auto;
+    min-width: auto;
+    flex-direction: row;
+}
+
 .filter-item label {
     font-weight: 600;
     color: #555;
@@ -1282,16 +1289,10 @@ tbody tr:nth-child(even):hover {
 }
 
 /* Icon Buttons - Modern Design */
-.action-buttons,
 .action-buttons-inline {
     display: flex;
     gap: 12px;
-    align-items: center;
-}
-
-.action-buttons-inline {
-    margin-top: auto;
-    padding-bottom: 2px;
+    align-items: flex-end;
 }
 
 .icon-btn {
