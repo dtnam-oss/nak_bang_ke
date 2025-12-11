@@ -734,7 +734,7 @@ function displayGHNData(data) {
                     <td></td>
                     <td>100%</td>
                     <td></td>
-                    <td>${vehicle.loai_tuyen_khach_hang || ''}</td>
+                    <td>${trip.lo_trinh || ''}</td>
                     <td>${maChuyen}</td>
                 `;
 
@@ -838,7 +838,7 @@ async function exportGHNToExcel() {
                         phi_duong_tai: '',
                         ty_le_ontime: '100%',
                         thanh_tien: '',
-                        ten_tuyen: vehicle.loai_tuyen_khach_hang || '',
+                        ten_tuyen: trip.lo_trinh || '',
                         ma_chuyen: maChuyen
                     });
 
