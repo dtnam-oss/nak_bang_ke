@@ -104,15 +104,12 @@ async function loadJNTData() {
 // Populate bộ lọc từ dữ liệu
 function populateJNTFilters(data) {
     const plateSelect = document.getElementById('jntPlateSelect');
-    const routeSelect = document.getElementById('jntRouteSelect');
 
     const plates = new Set();
-    const routes = new Set();
 
     // Extract unique values
     for (const date in data) {
         for (const loaiChuyen in data[date]) {
-            routes.add(loaiChuyen);
             for (const bienSo in data[date][loaiChuyen]) {
                 plates.add(bienSo);
             }
@@ -120,22 +117,15 @@ function populateJNTFilters(data) {
     }
 
     // Populate plate select
-    plateSelect.innerHTML = '<option value="">-- Tất cả --</option>';
-    Array.from(plates).sort().forEach(plate => {
-        const option = document.createElement('option');
-        option.value = plate;
-        option.textContent = plate;
-        plateSelect.appendChild(option);
-    });
-
-    // Populate route select
-    routeSelect.innerHTML = '<option value="">-- Tất cả --</option>';
-    Array.from(routes).sort().forEach(route => {
-        const option = document.createElement('option');
-        option.value = route;
-        option.textContent = route;
-        routeSelect.appendChild(option);
-    });
+    if (plateSelect) {
+        plateSelect.innerHTML = '<option value="">-- Tất cả --</option>';
+        Array.from(plates).sort().forEach(plate => {
+            const option = document.createElement('option');
+            option.value = plate;
+            option.textContent = plate;
+            plateSelect.appendChild(option);
+        });
+    }
 }
 
 // Áp dụng bộ lọc
