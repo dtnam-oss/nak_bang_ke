@@ -9,23 +9,43 @@ let currentPage = 1;
 const itemsPerPage = 50;
 
 // DOM elements
-const customerSelect = document.getElementById('customerSelect');
-const plateSelect = document.getElementById('plateSelect');
-const routeSelect = document.getElementById('routeSelect');
-const fromDateInput = document.getElementById('fromDate');
-const toDateInput = document.getElementById('toDate');
-const tableBody = document.getElementById('tableBody');
-const noDataEl = document.getElementById('noData');
-const paginationEl = document.getElementById('pagination');
-const paginationInfoEl = document.getElementById('paginationInfo');
-const currentPageEl = document.getElementById('currentPage');
-const totalPagesEl = document.getElementById('totalPages');
-const prevBtn = document.getElementById('prevBtn');
-const nextBtn = document.getElementById('nextBtn');
+let customerSelect;
+let plateSelect;
+let routeSelect;
+let fromDateInput;
+let toDateInput;
+let tableBody;
+let noDataEl;
+let paginationEl;
+let paginationInfoEl;
+let currentPageEl;
+let totalPagesEl;
+let prevBtn;
+let nextBtn;
+
+// Initialize DOM elements
+function initDOMElements() {
+    customerSelect = document.getElementById('customerSelect');
+    plateSelect = document.getElementById('plateSelect');
+    routeSelect = document.getElementById('routeSelect');
+    fromDateInput = document.getElementById('fromDate');
+    toDateInput = document.getElementById('toDate');
+    tableBody = document.getElementById('tableBody');
+    noDataEl = document.getElementById('noData');
+    paginationEl = document.getElementById('pagination');
+    paginationInfoEl = document.getElementById('paginationInfo');
+    currentPageEl = document.getElementById('currentPage');
+    totalPagesEl = document.getElementById('totalPages');
+    prevBtn = document.getElementById('prevBtn');
+    nextBtn = document.getElementById('nextBtn');
+}
 
 // Initialize the page
 async function init() {
-    setDefaultDates();
+    initDOMElements();
+    if (fromDateInput && toDateInput) {
+        setDefaultDates();
+    }
     await fetchDataFromGoogleSheets();
     populateFilters();
     renderTable(currentData);
@@ -61,6 +81,8 @@ async function fetchDataFromGoogleSheets() {
 
 // Populate filter dropdowns with unique values from data
 function populateFilters() {
+    if (!plateSelect || !customerSelect || !routeSelect) return;
+
     // Get unique plates
     const plates = [...new Set(allData.map(item => item.bien_kiem_soat).filter(Boolean))].sort();
     plates.forEach(plate => {
@@ -141,17 +163,21 @@ function formatTripDetails(chiTiet) {
 
 // Render table with data
 function renderTable(data) {
+    if (!tableBody) return;
+
     tableBody.innerHTML = '';
 
     if (data.length === 0) {
-        noDataEl.style.display = 'block';
-        document.querySelector('.table-container').style.display = 'none';
-        paginationEl.style.display = 'none';
+        if (noDataEl) noDataEl.style.display = 'block';
+        const tableContainer = document.querySelector('.table-container');
+        if (tableContainer) tableContainer.style.display = 'none';
+        if (paginationEl) paginationEl.style.display = 'none';
         return;
     }
 
-    noDataEl.style.display = 'none';
-    document.querySelector('.table-container').style.display = 'block';
+    if (noDataEl) noDataEl.style.display = 'none';
+    const tableContainer = document.querySelector('.table-container');
+    if (tableContainer) tableContainer.style.display = 'block';
 
     // Calculate pagination
     const totalPages = Math.ceil(data.length / itemsPerPage);
@@ -182,22 +208,28 @@ function renderTable(data) {
 
 // Update pagination controls
 function updatePaginationControls(totalItems, totalPages, startIndex, endIndex) {
+    if (!paginationEl) return;
+
     if (totalItems <= itemsPerPage) {
         paginationEl.style.display = 'none';
         return;
     }
 
     paginationEl.style.display = 'flex';
-    paginationInfoEl.textContent = `Hiển thị ${startIndex + 1}-${endIndex} / ${totalItems} chuyến`;
-    currentPageEl.textContent = currentPage;
-    totalPagesEl.textContent = totalPages;
+    if (paginationInfoEl) paginationInfoEl.textContent = `Hiển thị ${startIndex + 1}-${endIndex} / ${totalItems} chuyến`;
+    if (currentPageEl) currentPageEl.textContent = currentPage;
+    if (totalPagesEl) totalPagesEl.textContent = totalPages;
 
-    prevBtn.disabled = currentPage === 1;
-    nextBtn.disabled = currentPage === totalPages;
+    if (prevBtn) prevBtn.disabled = currentPage === 1;
+    if (nextBtn) nextBtn.disabled = currentPage === totalPages;
 }
 
 // Filter data
 function filterData() {
+    if (!customerSelect || !plateSelect || !routeSelect || !fromDateInput || !toDateInput) {
+        return;
+    }
+
     const selectedCustomer = customerSelect.value;
     const selectedPlate = plateSelect.value;
     const selectedRoute = routeSelect.value;
@@ -250,10 +282,14 @@ function convertDateToYYYYMMDD(dateString) {
 
 // Reset filters
 function resetFilters() {
+    if (!customerSelect || !plateSelect || !routeSelect) return;
+
     customerSelect.value = '';
     plateSelect.value = '';
     routeSelect.value = '';
-    setDefaultDates();
+    if (fromDateInput && toDateInput) {
+        setDefaultDates();
+    }
     currentData = [...allData];
     currentPage = 1;
     renderTable(currentData);
@@ -278,15 +314,15 @@ function goToPrevPage() {
 // Attach event listeners
 function attachEventListeners() {
     // Auto-filter when any filter changes
-    customerSelect.addEventListener('change', filterData);
-    plateSelect.addEventListener('change', filterData);
-    routeSelect.addEventListener('change', filterData);
-    fromDateInput.addEventListener('change', filterData);
-    toDateInput.addEventListener('change', filterData);
+    if (customerSelect) customerSelect.addEventListener('change', filterData);
+    if (plateSelect) plateSelect.addEventListener('change', filterData);
+    if (routeSelect) routeSelect.addEventListener('change', filterData);
+    if (fromDateInput) fromDateInput.addEventListener('change', filterData);
+    if (toDateInput) toDateInput.addEventListener('change', filterData);
 
     // Pagination buttons
-    prevBtn.addEventListener('click', goToPrevPage);
-    nextBtn.addEventListener('click', goToNextPage);
+    if (prevBtn) prevBtn.addEventListener('click', goToPrevPage);
+    if (nextBtn) nextBtn.addEventListener('click', goToNextPage);
 }
 
 // Navigation menu handling
