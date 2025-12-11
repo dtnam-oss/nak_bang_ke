@@ -208,28 +208,26 @@
                 <div class="filter-section">
                     <div class="filter-container">
                         <div class="filter-item">
-                            <label for="jntDisplayTypeSelect">Hiển thị theo:</label>
-                            <select id="jntDisplayTypeSelect" class="select-dropdown">
-                                <option value="theo-ca">Theo ca</option>
-                                <option value="theo-tuyen">Theo tuyến</option>
-                            </select>
+                            <label>Hiển thị theo:</label>
+                            <div class="button-group">
+                                <button id="jntBtnTheoCa" class="toggle-btn active" data-view="theo-ca">Theo ca</button>
+                                <button id="jntBtnTheoTuyen" class="toggle-btn" data-view="theo-tuyen">Theo tuyến</button>
+                            </div>
                         </div>
 
                         <div class="filter-item">
-                            <label for="jntDateSelect">Ngày:</label>
-                            <input type="date" id="jntDateSelect" class="date-input">
+                            <label for="jntDateFrom">Từ ngày:</label>
+                            <input type="date" id="jntDateFrom" class="date-input">
+                        </div>
+
+                        <div class="filter-item">
+                            <label for="jntDateTo">Đến ngày:</label>
+                            <input type="date" id="jntDateTo" class="date-input">
                         </div>
 
                         <div class="filter-item">
                             <label for="jntPlateSelect">Biển số:</label>
                             <select id="jntPlateSelect" class="select-dropdown">
-                                <option value="">-- Tất cả --</option>
-                            </select>
-                        </div>
-
-                        <div class="filter-item">
-                            <label for="jntRouteSelect">Loại tuyến:</label>
-                            <select id="jntRouteSelect" class="select-dropdown">
                                 <option value="">-- Tất cả --</option>
                             </select>
                         </div>

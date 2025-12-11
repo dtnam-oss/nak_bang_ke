@@ -81,9 +81,13 @@ async function loadJNTData() {
 
         // Set default date to today
         const today = new Date().toISOString().split('T')[0];
-        const dateSelect = document.getElementById('jntDateSelect');
-        if (dateSelect) {
-            dateSelect.value = today;
+        const dateFromInput = document.getElementById('jntDateFrom');
+        const dateToInput = document.getElementById('jntDateTo');
+        if (dateFromInput) {
+            dateFromInput.value = today;
+        }
+        if (dateToInput) {
+            dateToInput.value = today;
         }
 
         // Apply initial filter
@@ -136,36 +140,51 @@ function populateJNTFilters(data) {
 
 // Áp dụng bộ lọc
 function applyJNTFilter() {
-    const displayType = document.getElementById('jntDisplayTypeSelect').value;
-    const selectedDate = document.getElementById('jntDateSelect').value;
+    // Get current display type from toggle buttons
+    const activeBtn = document.querySelector('.toggle-btn.active');
+    const displayType = activeBtn ? activeBtn.getAttribute('data-view') : 'theo-ca';
+
+    const dateFrom = document.getElementById('jntDateFrom').value;
+    const dateTo = document.getElementById('jntDateTo').value;
     const selectedPlate = document.getElementById('jntPlateSelect').value;
-    const selectedRoute = document.getElementById('jntRouteSelect').value;
 
     currentDisplayType = displayType;
+
+    // Determine loai_chuyen value based on display type
+    const loaiChuyenFilter = displayType === 'theo-ca' ? 'Theo ca' : 'Theo tuyến';
 
     // Filter data
     jntFilteredData = [];
 
-    if (!selectedDate) {
+    if (!dateFrom || !dateTo) {
         showJNTNoData(true);
         return;
     }
 
-    const dateData = jntReportData[selectedDate];
-    if (!dateData) {
-        showJNTNoData(true);
-        return;
-    }
+    // Parse dates for comparison
+    const fromDate = new Date(dateFrom);
+    const toDate = new Date(dateTo);
 
-    // Filter by route and plate
-    for (const loaiChuyen in dateData) {
-        if (selectedRoute && loaiChuyen !== selectedRoute) continue;
+    // Loop through all dates in the range
+    for (const dateKey in jntReportData) {
+        const currentDate = new Date(dateKey);
 
-        for (const bienSo in dateData[loaiChuyen]) {
-            if (selectedPlate && bienSo !== selectedPlate) continue;
+        // Check if date is within range
+        if (currentDate >= fromDate && currentDate <= toDate) {
+            const dateData = jntReportData[dateKey];
 
-            const vehicleData = dateData[loaiChuyen][bienSo];
-            jntFilteredData.push(vehicleData);
+            // Filter by loai_chuyen (based on display type)
+            for (const loaiChuyen in dateData) {
+                // Only include data matching the selected loai_chuyen
+                if (loaiChuyen !== loaiChuyenFilter) continue;
+
+                for (const bienSo in dateData[loaiChuyen]) {
+                    if (selectedPlate && bienSo !== selectedPlate) continue;
+
+                    const vehicleData = dateData[loaiChuyen][bienSo];
+                    jntFilteredData.push(vehicleData);
+                }
+            }
         }
     }
 
@@ -357,18 +376,23 @@ async function exportJNTToExcel() {
 
     try {
         // Lấy loại hiển thị hiện tại
-        const displayType = document.getElementById('jntDisplayTypeSelect').value;
-        const selectedDate = document.getElementById('jntDateSelect').value || 'all';
+        const activeBtn = document.querySelector('.toggle-btn.active');
+        const displayType = activeBtn ? activeBtn.getAttribute('data-view') : 'theo-ca';
+        const dateFrom = document.getElementById('jntDateFrom').value || '';
+        const dateTo = document.getElementById('jntDateTo').value || '';
 
         let fileName = '';
-        
+
+        // Format date range for filename
+        const dateRangeStr = dateFrom === dateTo ? dateFrom : `${dateFrom}_to_${dateTo}`;
+
         // Tạo workbook mới
         const workbook = new ExcelJS.Workbook();
         const worksheet = workbook.addWorksheet('J&T Report');
 
         if (displayType === 'theo-ca') {
             // Xuất dữ liệu theo ca
-            fileName = `JNT_TheoCa_${selectedDate}.xlsx`;
+            fileName = `JNT_TheoCa_${dateRangeStr}.xlsx`;
 
             // Định nghĩa cột
             worksheet.columns = [
@@ -440,7 +464,7 @@ async function exportJNTToExcel() {
 
         } else {
             // Xuất dữ liệu theo tuyến
-            fileName = `JNT_TheoTuyen_${selectedDate}.xlsx`;
+            fileName = `JNT_TheoTuyen_${dateRangeStr}.xlsx`;
 
             // Định nghĩa cột
             worksheet.columns = [
@@ -524,10 +548,24 @@ async function exportJNTToExcel() {
 
 // ===== EVENT LISTENERS =====
 function initJNTEventListeners() {
-    // Display type change
-    const displayTypeSelect = document.getElementById('jntDisplayTypeSelect');
-    if (displayTypeSelect) {
-        displayTypeSelect.addEventListener('change', applyJNTFilter);
+    // Toggle buttons for display type
+    const btnTheoCa = document.getElementById('jntBtnTheoCa');
+    const btnTheoTuyen = document.getElementById('jntBtnTheoTuyen');
+
+    if (btnTheoCa) {
+        btnTheoCa.addEventListener('click', function() {
+            document.querySelectorAll('.toggle-btn').forEach(btn => btn.classList.remove('active'));
+            this.classList.add('active');
+            applyJNTFilter();
+        });
+    }
+
+    if (btnTheoTuyen) {
+        btnTheoTuyen.addEventListener('click', function() {
+            document.querySelectorAll('.toggle-btn').forEach(btn => btn.classList.remove('active'));
+            this.classList.add('active');
+            applyJNTFilter();
+        });
     }
 
     // Apply filter button
@@ -540,10 +578,18 @@ function initJNTEventListeners() {
     const resetBtn = document.getElementById('jntResetFilter');
     if (resetBtn) {
         resetBtn.addEventListener('click', () => {
-            document.getElementById('jntDisplayTypeSelect').value = 'theo-ca';
-            document.getElementById('jntDateSelect').value = new Date().toISOString().split('T')[0];
+            // Reset toggle buttons
+            document.querySelectorAll('.toggle-btn').forEach(btn => btn.classList.remove('active'));
+            const btnTheoCa = document.getElementById('jntBtnTheoCa');
+            if (btnTheoCa) {
+                btnTheoCa.classList.add('active');
+            }
+
+            // Reset date range to today
+            const today = new Date().toISOString().split('T')[0];
+            document.getElementById('jntDateFrom').value = today;
+            document.getElementById('jntDateTo').value = today;
             document.getElementById('jntPlateSelect').value = '';
-            document.getElementById('jntRouteSelect').value = '';
             applyJNTFilter();
         });
     }

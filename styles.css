@@ -1386,6 +1386,39 @@ tbody tr:nth-child(even):hover {
     }
 }
 
+/* Toggle Button Group */
+.button-group {
+    display: flex;
+    gap: 8px;
+    background: #f0f0f0;
+    padding: 4px;
+    border-radius: 8px;
+}
+
+.toggle-btn {
+    padding: 8px 20px;
+    border: none;
+    border-radius: 6px;
+    font-size: 0.9em;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    background: transparent;
+    color: #666;
+    outline: none;
+}
+
+.toggle-btn:hover {
+    background: rgba(102, 126, 234, 0.1);
+    color: #667eea;
+}
+
+.toggle-btn.active {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
+}
+
 /* Filter Buttons */
 .btn-primary,
 .btn-secondary {
