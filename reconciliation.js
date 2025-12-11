@@ -328,7 +328,9 @@ function displayJNTDataTheoTuyen(data) {
             const group = routeGroups[route];
             const temDi = group.temDi.join(', ');
             const temVe = group.temVe.join(', ');
-            const theTich = group.theTich.join(', ');
+            // Loại bỏ giá trị trùng lặp trong theTich
+            const uniqueTheTich = [...new Set(group.theTich)];
+            const theTich = uniqueTheTich.join(', ');
 
             row.innerHTML = `
                 <td>${stt++}</td>
@@ -533,6 +535,8 @@ async function exportJNTToExcel() {
                 // Thêm dòng cho từng tuyến
                 for (const route in routeGroups) {
                     const group = routeGroups[route];
+                    // Loại bỏ giá trị trùng lặp trong theTich
+                    const uniqueTheTich = [...new Set(group.theTich)];
                     worksheet.addRow({
                         stt: stt++,
                         ngay: vehicle.ngay,
@@ -540,7 +544,7 @@ async function exportJNTToExcel() {
                         diem_di_den: route,
                         tem_di: group.temDi.join(', '),
                         tem_ve: group.temVe.join(', '),
-                        the_tich: group.theTich.join(', ')
+                        the_tich: uniqueTheTich.join(', ')
                     });
                 }
             });
