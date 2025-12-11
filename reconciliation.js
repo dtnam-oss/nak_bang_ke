@@ -488,11 +488,24 @@ function exportJNTToExcel() {
             { wch: 12 }, // Ngày
             { wch: 12 }, // Biển Số
             { wch: 30 }, // Cột 4
-            { wch: 30 }, // Cột 5
-            { wch: 30 }, // Cột 6
-            { wch: 15 }  // Cột 7
+            { wch: 50 }, // Cột 5 - tăng độ rộng cho điểm đi-đến
+            { wch: 15 }, // Cột 6
+            { wch: 20 }  // Cột 7
         ];
         ws['!cols'] = colWidths;
+
+        // Thiết lập wrapText cho tất cả các ô để xuống dòng
+        const range = XLSX.utils.decode_range(ws['!ref']);
+        for (let R = range.s.r; R <= range.e.r; ++R) {
+            for (let C = range.s.c; C <= range.e.c; ++C) {
+                const cellAddress = XLSX.utils.encode_cell({ r: R, c: C });
+                if (!ws[cellAddress]) continue;
+                
+                // Thiết lập style wrapText cho tất cả các ô
+                if (!ws[cellAddress].s) ws[cellAddress].s = {};
+                ws[cellAddress].s.alignment = { wrapText: true, vertical: 'top' };
+            }
+        }
 
         // Thêm worksheet vào workbook
         XLSX.utils.book_append_sheet(wb, ws, sheetName);
