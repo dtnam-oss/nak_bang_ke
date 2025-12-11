@@ -348,7 +348,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Load J&T data if on reconciliation page
     const doiSoatSection = document.getElementById('doiSoatSection');
-    if (doiSoatSection && !doiSoatSection.style.display === 'none') {
+    if (doiSoatSection && doiSoatSection.style.display !== 'none') {
         loadJNTData();
     }
 });
