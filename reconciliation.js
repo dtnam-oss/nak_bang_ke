@@ -196,9 +196,11 @@ function displayJNTDataTheoCa(data) {
     data.forEach(vehicle => {
         const row = document.createElement('tr');
 
-        // Gộp tất cả mã tem và điểm đi-đến của các chuyến đi trong ngày
+        // Gộp tất cả mã tem, điểm đi-đến, thể tích, loại ca
         const allMaTem = [];
         const allDiemDiDen = [];
+        const allTheTich = [];
+        const allLoaiCa = [];
 
         vehicle.chi_tiet_chuyen_di.forEach(trip => {
             // Mã tem - gộp tất cả vào một mảng
@@ -208,28 +210,38 @@ function displayJNTDataTheoCa(data) {
                 allMaTem.push(trip.ma_tem);
             }
 
-            // Điểm đi - điểm đến - gộp tất cả vào một mảng
+            // Điểm đi - điểm đến - mỗi cặp điểm là một dòng
             if (Array.isArray(trip.diem_di_diem_den)) {
-                allDiemDiDen.push(...trip.diem_di_diem_den);
+                allDiemDiDen.push(trip.diem_di_diem_den.join(' - '));
             } else if (trip.diem_di_diem_den) {
                 allDiemDiDen.push(trip.diem_di_diem_den);
             }
+
+            // Thể tích
+            if (trip.the_tich) {
+                allTheTich.push(trip.the_tich);
+            }
+
+            // Loại ca
+            if (trip.loai_ca) {
+                allLoaiCa.push(trip.loai_ca);
+            }
         });
 
-        // Gom tất cả mã tem thành một chuỗi, xuống dòng cho mỗi item
+        // Format hiển thị - xuống dòng cho mỗi item
         const maTem = allMaTem.join('<br>');
-        
-        // Gom tất cả điểm đi-đến thành một chuỗi, ngăn cách bởi " - "
-        const diemDiDen = allDiemDiDen.join(' - ');
+        const diemDiDen = allDiemDiDen.join('<br>');
+        const theTich = allTheTich.length > 0 ? allTheTich[0] : ''; // Lấy thể tích đầu tiên hoặc tổng
+        const loaiCa = allLoaiCa.length > 0 ? allLoaiCa[0] : ''; // Lấy loại ca đầu tiên
 
         row.innerHTML = `
             <td>${stt++}</td>
             <td>${vehicle.ngay}</td>
             <td>${vehicle.bien_so}</td>
             <td style="white-space: pre-line;">${maTem || ''}</td>
-            <td>${diemDiDen || ''}</td>
-            <td></td>
-            <td></td>
+            <td style="white-space: pre-line;">${diemDiDen || ''}</td>
+            <td>${theTich || ''}</td>
+            <td>${loaiCa || ''}</td>
         `;
 
         tbody.appendChild(row);
@@ -361,9 +373,11 @@ function exportJNTToExcel() {
             // Thêm dữ liệu
             let stt = 1;
             jntFilteredData.forEach(vehicle => {
-                // Gộp tất cả mã tem và điểm đi-đến của các chuyến đi trong ngày
+                // Gộp tất cả mã tem, điểm đi-đến, thể tích, loại ca
                 const allMaTem = [];
                 const allDiemDiDen = [];
+                const allTheTich = [];
+                const allLoaiCa = [];
 
                 vehicle.chi_tiet_chuyen_di.forEach(trip => {
                     // Mã tem - gộp tất cả vào một mảng
@@ -373,19 +387,29 @@ function exportJNTToExcel() {
                         allMaTem.push(trip.ma_tem);
                     }
 
-                    // Điểm đi - điểm đến - gộp tất cả vào một mảng
+                    // Điểm đi - điểm đến - mỗi cặp điểm là một dòng
                     if (Array.isArray(trip.diem_di_diem_den)) {
-                        allDiemDiDen.push(...trip.diem_di_diem_den);
+                        allDiemDiDen.push(trip.diem_di_diem_den.join(' - '));
                     } else if (trip.diem_di_diem_den) {
                         allDiemDiDen.push(trip.diem_di_diem_den);
                     }
+
+                    // Thể tích
+                    if (trip.the_tich) {
+                        allTheTich.push(trip.the_tich);
+                    }
+
+                    // Loại ca
+                    if (trip.loai_ca) {
+                        allLoaiCa.push(trip.loai_ca);
+                    }
                 });
 
-                // Gom tất cả mã tem thành một chuỗi, ngăn cách bởi xuống dòng
+                // Format Excel - mỗi giá trị xuống dòng bằng \n
                 const maTem = allMaTem.join('\n');
-                
-                // Gom tất cả điểm đi-đến thành một chuỗi, ngăn cách bởi " - "
-                const diemDiDen = allDiemDiDen.join(' - ');
+                const diemDiDen = allDiemDiDen.join('\n');
+                const theTich = allTheTich.length > 0 ? allTheTich[0] : ''; // Lấy thể tích đầu tiên
+                const loaiCa = allLoaiCa.length > 0 ? allLoaiCa[0] : ''; // Lấy loại ca đầu tiên
 
                 // Thêm dòng vào Excel
                 excelData.push([
@@ -394,8 +418,8 @@ function exportJNTToExcel() {
                     vehicle.bien_so,
                     maTem,
                     diemDiDen,
-                    '', // Thể tích - để trống
-                    ''  // Loại ca - để trống
+                    theTich,
+                    loaiCa
                 ]);
             });
 
