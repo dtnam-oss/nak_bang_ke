@@ -292,17 +292,15 @@ function displayJNTDataTheoTuyen(data) {
             }
 
             // Split ma_tem by comma: first value = tem chiều đi, second value = tem chiều về
-            const maTems = Array.isArray(trip.ma_tem) ? trip.ma_tem : [trip.ma_tem];
-
-            maTems.forEach(maTem => {
-                const parts = maTem.toString().split(',').map(p => p.trim());
+            if (trip.ma_tem) {
+                const parts = trip.ma_tem.toString().split(',').map(p => p.trim());
                 if (parts.length >= 1 && parts[0]) {
                     routeGroups[route].temDi.push(parts[0]);
                 }
                 if (parts.length >= 2 && parts[1]) {
                     routeGroups[route].temVe.push(parts[1]);
                 }
-            });
+            }
 
             if (trip.the_tich) {
                 routeGroups[route].theTich.push(trip.the_tich);
@@ -489,17 +487,15 @@ async function exportJNTToExcel() {
                     }
 
                     // Split ma_tem by comma: first value = tem chiều đi, second value = tem chiều về
-                    const maTems = Array.isArray(trip.ma_tem) ? trip.ma_tem : [trip.ma_tem];
-
-                    maTems.forEach(maTem => {
-                        const parts = maTem.toString().split(',').map(p => p.trim());
+                    if (trip.ma_tem) {
+                        const parts = trip.ma_tem.toString().split(',').map(p => p.trim());
                         if (parts.length >= 1 && parts[0]) {
                             routeGroups[route].temDi.push(parts[0]);
                         }
                         if (parts.length >= 2 && parts[1]) {
                             routeGroups[route].temVe.push(parts[1]);
                         }
-                    });
+                    }
 
                     if (trip.the_tich) {
                         routeGroups[route].theTich.push(trip.the_tich);

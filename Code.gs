@@ -796,15 +796,15 @@ function buildNestedReportData(data, colIndexes) {
       };
     }
 
-    // Parse ma_tem (có thể là nhiều giá trị)
-    var maTems = parseMultipleValues(maTem);
+    // Giữ nguyên ma_tem dưới dạng chuỗi (không parse) để frontend tự xử lý split
+    var maTemStr = maTem ? maTem.toString().trim() : '';
 
     // Parse điểm đi - điểm đến
     var diemDiDenParsed = parseRouteDetail(diemDiDen);
 
     // Thêm chi tiết chuyến đi
     reportData[dateKey][loaiChuyenKey][bienSoKey].chi_tiet_chuyen_di.push({
-      ma_tem: maTems,
+      ma_tem: maTemStr,
       diem_di_diem_den: diemDiDenParsed,
       the_tich: theTich || '',
       loai_ca: loaiCa || '',
