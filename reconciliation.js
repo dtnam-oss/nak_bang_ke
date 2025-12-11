@@ -703,28 +703,21 @@ function displayGHNData(data) {
     data.forEach(vehicle => {
         // Duyệt qua từng chuyến đi chi tiết
         vehicle.chi_tiet_chuyen_di.forEach(trip => {
-            // Lấy danh sách lộ trình chi tiết theo điểm
-            const loTrinhChiTiet = Array.isArray(trip.lo_trinh_chi_tiet_theo_diem)
-                ? trip.lo_trinh_chi_tiet_theo_diem
-                : [];
+            // Lộ trình chi tiết theo điểm (giữ nguyên chuỗi gốc)
+            const loTrinhChiTiet = trip.lo_trinh_chi_tiet_theo_diem || '';
 
             // Lấy danh sách mã chuyến
             const maChuyens = Array.isArray(trip.ma_chuyen_di_kh)
                 ? trip.ma_chuyen_di_kh
                 : (trip.ma_chuyen_di_kh ? [trip.ma_chuyen_di_kh] : []);
 
-            // Tính số dòng cần tạo (dựa trên số lượng lớn nhất giữa lộ trình và mã chuyến)
-            const maxRows = Math.max(
-                loTrinhChiTiet.length || 1,
-                maChuyens.length || 1
-            );
+            // Tính số dòng cần tạo (dựa trên số lượng mã chuyến, ít nhất 1 dòng)
+            const maxRows = Math.max(maChuyens.length, 1);
 
-            // Tạo nhiều dòng nếu có nhiều lộ trình hoặc mã chuyến
+            // Tạo nhiều dòng nếu có nhiều mã chuyến
             for (let i = 0; i < maxRows; i++) {
                 const row = document.createElement('tr');
 
-                // Lộ trình chi tiết theo điểm cho dòng này
-                const loTrinh = loTrinhChiTiet[i] || '';
                 // Mã chuyến cho dòng này
                 const maChuyen = maChuyens[i] || '';
 
@@ -734,7 +727,7 @@ function displayGHNData(data) {
                     <td>${vehicle.bien_so}</td>
                     <td>${trip.tai_trong_tinh_phi || ''}</td>
                     <td>${trip.hinh_thuc_tinh_gia || ''}</td>
-                    <td>${loTrinh}</td>
+                    <td>${loTrinhChiTiet}</td>
                     <td>${trip.quang_duong || ''}</td>
                     <td>${trip.don_gia || ''}</td>
                     <td></td>
@@ -817,34 +810,28 @@ async function exportGHNToExcel() {
 
         ghnFilteredData.forEach(vehicle => {
             vehicle.chi_tiet_chuyen_di.forEach(trip => {
-                // Lấy danh sách lộ trình chi tiết theo điểm
-                const loTrinhChiTiet = Array.isArray(trip.lo_trinh_chi_tiet_theo_diem)
-                    ? trip.lo_trinh_chi_tiet_theo_diem
-                    : [];
+                // Lộ trình chi tiết theo điểm (giữ nguyên chuỗi gốc)
+                const loTrinhChiTiet = trip.lo_trinh_chi_tiet_theo_diem || '';
 
                 // Lấy danh sách mã chuyến
                 const maChuyens = Array.isArray(trip.ma_chuyen_di_kh)
                     ? trip.ma_chuyen_di_kh
                     : (trip.ma_chuyen_di_kh ? [trip.ma_chuyen_di_kh] : []);
 
-                // Tính số dòng cần tạo
-                const maxRows = Math.max(
-                    loTrinhChiTiet.length || 1,
-                    maChuyens.length || 1
-                );
+                // Tính số dòng cần tạo (dựa trên số lượng mã chuyến, ít nhất 1 dòng)
+                const maxRows = Math.max(maChuyens.length, 1);
 
-                // Tạo nhiều dòng nếu có nhiều lộ trình hoặc mã chuyến
+                // Tạo nhiều dòng nếu có nhiều mã chuyến
                 for (let i = 0; i < maxRows; i++) {
-                    const loTrinh = loTrinhChiTiet[i] || '';
                     const maChuyen = maChuyens[i] || '';
 
-                    worksheet.addRow({
+                    const row = worksheet.addRow({
                         stt: stt++,
                         ngay: vehicle.ngay,
                         bien_so: vehicle.bien_so,
                         tai_trong: trip.tai_trong_tinh_phi || '',
                         hinh_thuc: trip.hinh_thuc_tinh_gia || '',
-                        lo_trinh: loTrinh,
+                        lo_trinh: loTrinhChiTiet,
                         quang_duong: trip.quang_duong || '',
                         don_gia: trip.don_gia || '',
                         ve_cau_duong: '',
@@ -854,6 +841,9 @@ async function exportGHNToExcel() {
                         ten_tuyen: vehicle.loai_tuyen_khach_hang || '',
                         ma_chuyen: maChuyen
                     });
+
+                    // Enable text wrapping cho cột lộ trình (cột F - index 6)
+                    row.getCell(6).alignment = { wrapText: true, vertical: 'top' };
                 }
             });
         });

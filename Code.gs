@@ -869,30 +869,13 @@ function parseMultipleValues(value) {
 /**
  * Parse chi tiết lộ trình theo điểm
  * @param {string} routeDetail - Chi tiết lộ trình
- * @return {Array} Mảng các điểm
+ * @return {string} Chuỗi gốc (không parse)
  */
 function parseRouteDetail(routeDetail) {
-  if (!routeDetail) return [];
+  if (!routeDetail) return '';
 
   var strValue = routeDetail.toString().trim();
-  if (!strValue) return [];
-
-  // Có thể là JSON array hoặc string ngăn cách bởi dấu
-  try {
-    var parsed = JSON.parse(strValue);
-    if (Array.isArray(parsed)) {
-      return parsed;
-    }
-  } catch (e) {
-    // Không phải JSON, parse như string
-  }
-
-  // Split bởi các ký tự phổ biến: , - > →
-  return strValue.split(/[,\-→>]/).map(function(item) {
-    return item.trim();
-  }).filter(function(item) {
-    return item !== '';
-  });
+  return strValue;
 }
 
 /**
