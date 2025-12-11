@@ -48,12 +48,13 @@ async function loadJNTData() {
     showJNTLoading(true);
 
     try {
-        // Get the current script URL (works for Google Apps Script Web Apps)
-        const scriptUrl = window.location.href.split('?')[0];
+        // Google Apps Script Web App URL
+        // TODO: Replace with your actual deployment URL
+        const GAS_URL = 'https://script.google.com/macros/s/AKfycbyOuru9de8kUesUXGOeGX3PGzCraa_hXE7uYJD9LidDGzTQkDh9XKkVS63ZvY8i4kKV/exec';
 
         // Call Google Apps Script để lấy dữ liệu
         const response = await fetch(
-            `${scriptUrl}?action=getJNTReportData`
+            `${GAS_URL}?action=getJNTReportData`
         );
 
         if (!response.ok) {
