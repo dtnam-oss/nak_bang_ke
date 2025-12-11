@@ -36,6 +36,8 @@ function initReconciliationTabs() {
             // Load data for the selected tab
             if (tabName === 'jnt') {
                 loadJNTData();
+            } else if (tabName === 'ghn') {
+                loadGHNData();
             }
         });
     });
@@ -553,10 +555,362 @@ function initJNTEventListeners() {
     }
 }
 
+// ===== GHN TAB FUNCTIONS =====
+
+// Global variables for GHN
+let ghnReportData = {};
+let ghnFilteredData = [];
+
+// Load dữ liệu GHN từ Google Apps Script
+async function loadGHNData() {
+    showGHNLoading(true);
+
+    try {
+        // Google Apps Script Web App URL
+        const GAS_URL = 'https://script.google.com/macros/s/AKfycbyOuru9de8kUesUXGOeGX3PGzCraa_hXE7uYJD9LidDGzTQkDh9XKkVS63ZvY8i4kKV/exec';
+
+        // Call Google Apps Script để lấy dữ liệu GHN
+        const response = await fetch(
+            `${GAS_URL}?action=getGHNReportData`
+        );
+
+        if (!response.ok) {
+            throw new Error('Failed to fetch GHN data');
+        }
+
+        const data = await response.json();
+        console.log('Loaded GHN data:', data);
+
+        // Check if data is empty
+        if (!data || Object.keys(data).length === 0) {
+            console.warn('No GHN data available');
+            showGHNNoData(true);
+            showGHNLoading(false);
+            return;
+        }
+
+        ghnReportData = data;
+
+        // Populate filters
+        populateGHNFilters(data);
+
+        // Set default date to today
+        const today = new Date().toISOString().split('T')[0];
+        const dateSelect = document.getElementById('ghnDateSelect');
+        if (dateSelect) {
+            dateSelect.value = today;
+        }
+
+        // Apply initial filter
+        applyGHNFilter();
+
+    } catch (error) {
+        console.error('Error loading GHN data:', error);
+        showGHNNoData(true);
+    } finally {
+        showGHNLoading(false);
+    }
+}
+
+// Populate bộ lọc từ dữ liệu GHN
+function populateGHNFilters(data) {
+    const plateSelect = document.getElementById('ghnPlateSelect');
+    const routeSelect = document.getElementById('ghnRouteSelect');
+
+    const plates = new Set();
+    const routes = new Set();
+
+    // Extract unique values
+    for (const date in data) {
+        for (const loaiTuyen in data[date]) {
+            routes.add(loaiTuyen);
+            for (const bienSo in data[date][loaiTuyen]) {
+                plates.add(bienSo);
+            }
+        }
+    }
+
+    // Populate plate select
+    plateSelect.innerHTML = '<option value="">-- Tất cả --</option>';
+    Array.from(plates).sort().forEach(plate => {
+        const option = document.createElement('option');
+        option.value = plate;
+        option.textContent = plate;
+        plateSelect.appendChild(option);
+    });
+
+    // Populate route select
+    routeSelect.innerHTML = '<option value="">-- Tất cả --</option>';
+    Array.from(routes).sort().forEach(route => {
+        const option = document.createElement('option');
+        option.value = route;
+        option.textContent = route;
+        routeSelect.appendChild(option);
+    });
+}
+
+// Áp dụng bộ lọc GHN
+function applyGHNFilter() {
+    const selectedDate = document.getElementById('ghnDateSelect').value;
+    const selectedPlate = document.getElementById('ghnPlateSelect').value;
+    const selectedRoute = document.getElementById('ghnRouteSelect').value;
+
+    // Filter data
+    ghnFilteredData = [];
+
+    if (!selectedDate) {
+        showGHNNoData(true);
+        return;
+    }
+
+    const dateData = ghnReportData[selectedDate];
+    if (!dateData) {
+        showGHNNoData(true);
+        return;
+    }
+
+    // Filter by route and plate
+    for (const loaiTuyen in dateData) {
+        if (selectedRoute && loaiTuyen !== selectedRoute) continue;
+
+        for (const bienSo in dateData[loaiTuyen]) {
+            if (selectedPlate && bienSo !== selectedPlate) continue;
+
+            const vehicleData = dateData[loaiTuyen][bienSo];
+            ghnFilteredData.push(vehicleData);
+        }
+    }
+
+    // Display data
+    displayGHNData(ghnFilteredData);
+}
+
+// Hiển thị dữ liệu GHN - mỗi lo_trinh và ma_chuyen_di_kh là 1 dòng
+function displayGHNData(data) {
+    const tbody = document.getElementById('ghnTableBody');
+    tbody.innerHTML = '';
+
+    if (data.length === 0) {
+        showGHNNoData(true);
+        return;
+    }
+
+    showGHNNoData(false);
+
+    let stt = 1;
+
+    // Duyệt qua từng xe
+    data.forEach(vehicle => {
+        // Duyệt qua từng chuyến đi chi tiết
+        vehicle.chi_tiet_chuyen_di.forEach(trip => {
+            // Lấy danh sách lộ trình chi tiết theo điểm
+            const loTrinhChiTiet = Array.isArray(trip.lo_trinh_chi_tiet_theo_diem)
+                ? trip.lo_trinh_chi_tiet_theo_diem
+                : [];
+
+            // Lấy danh sách mã chuyến
+            const maChuyens = Array.isArray(trip.ma_chuyen_di_kh)
+                ? trip.ma_chuyen_di_kh
+                : (trip.ma_chuyen_di_kh ? [trip.ma_chuyen_di_kh] : []);
+
+            // Tính số dòng cần tạo (dựa trên số lượng lớn nhất giữa lộ trình và mã chuyến)
+            const maxRows = Math.max(
+                loTrinhChiTiet.length || 1,
+                maChuyens.length || 1
+            );
+
+            // Tạo nhiều dòng nếu có nhiều lộ trình hoặc mã chuyến
+            for (let i = 0; i < maxRows; i++) {
+                const row = document.createElement('tr');
+
+                // Lộ trình chi tiết theo điểm cho dòng này
+                const loTrinh = loTrinhChiTiet[i] || '';
+                // Mã chuyến cho dòng này
+                const maChuyen = maChuyens[i] || '';
+
+                row.innerHTML = `
+                    <td>${stt++}</td>
+                    <td>${vehicle.ngay}</td>
+                    <td>${vehicle.bien_so}</td>
+                    <td>${trip.tai_trong_tinh_phi || ''}</td>
+                    <td>${trip.hinh_thuc_tinh_gia || ''}</td>
+                    <td>${loTrinh}</td>
+                    <td>${trip.quang_duong || ''}</td>
+                    <td>${trip.don_gia || ''}</td>
+                    <td></td>
+                    <td></td>
+                    <td>100%</td>
+                    <td></td>
+                    <td>${vehicle.loai_tuyen_khach_hang || ''}</td>
+                    <td>${maChuyen}</td>
+                `;
+
+                tbody.appendChild(row);
+            }
+        });
+    });
+}
+
+// Show/hide loading GHN
+function showGHNLoading(show) {
+    const loading = document.getElementById('ghnLoading');
+    if (loading) {
+        loading.style.display = show ? 'block' : 'none';
+    }
+}
+
+// Show/hide no data message GHN
+function showGHNNoData(show) {
+    const noData = document.getElementById('ghnNoData');
+    const tableSection = document.getElementById('ghnTableSection');
+
+    if (noData) {
+        noData.style.display = show ? 'block' : 'none';
+    }
+
+    if (show) {
+        if (tableSection) tableSection.style.display = 'none';
+    } else {
+        if (tableSection) tableSection.style.display = 'block';
+    }
+}
+
+// ===== EXPORT GHN TO EXCEL =====
+
+/**
+ * Xuất dữ liệu GHN ra file Excel sử dụng ExcelJS
+ */
+async function exportGHNToExcel() {
+    if (!ghnFilteredData || ghnFilteredData.length === 0) {
+        alert('Không có dữ liệu để xuất. Vui lòng chọn bộ lọc và có dữ liệu hiển thị.');
+        return;
+    }
+
+    try {
+        const selectedDate = document.getElementById('ghnDateSelect').value || 'all';
+        const fileName = `GHN_${selectedDate}.xlsx`;
+
+        // Tạo workbook mới
+        const workbook = new ExcelJS.Workbook();
+        const worksheet = workbook.addWorksheet('GHN Report');
+
+        // Định nghĩa cột
+        worksheet.columns = [
+            { header: 'STT', key: 'stt', width: 5 },
+            { header: 'Ngày', key: 'ngay', width: 12 },
+            { header: 'BiểnSố', key: 'bien_so', width: 12 },
+            { header: 'Trọng Tải Yêu Cầu', key: 'tai_trong', width: 15 },
+            { header: 'Hình Thức Tính Giá', key: 'hinh_thuc', width: 18 },
+            { header: 'Lộ Trình', key: 'lo_trinh', width: 50 },
+            { header: 'Số KM', key: 'quang_duong', width: 10 },
+            { header: 'Đơn giá khung', key: 'don_gia', width: 15 },
+            { header: 'Về cầu đường', key: 've_cau_duong', width: 15 },
+            { header: 'Phí đường tải', key: 'phi_duong_tai', width: 15 },
+            { header: 'Tỷ lệ Ontime', key: 'ty_le_ontime', width: 12 },
+            { header: 'Thành Tiền (chưa VAT)', key: 'thanh_tien', width: 18 },
+            { header: 'Tên tuyến', key: 'ten_tuyen', width: 25 },
+            { header: 'Mã chuyến', key: 'ma_chuyen', width: 20 }
+        ];
+
+        // Thêm dữ liệu
+        let stt = 1;
+
+        ghnFilteredData.forEach(vehicle => {
+            vehicle.chi_tiet_chuyen_di.forEach(trip => {
+                // Lấy danh sách lộ trình chi tiết theo điểm
+                const loTrinhChiTiet = Array.isArray(trip.lo_trinh_chi_tiet_theo_diem)
+                    ? trip.lo_trinh_chi_tiet_theo_diem
+                    : [];
+
+                // Lấy danh sách mã chuyến
+                const maChuyens = Array.isArray(trip.ma_chuyen_di_kh)
+                    ? trip.ma_chuyen_di_kh
+                    : (trip.ma_chuyen_di_kh ? [trip.ma_chuyen_di_kh] : []);
+
+                // Tính số dòng cần tạo
+                const maxRows = Math.max(
+                    loTrinhChiTiet.length || 1,
+                    maChuyens.length || 1
+                );
+
+                // Tạo nhiều dòng nếu có nhiều lộ trình hoặc mã chuyến
+                for (let i = 0; i < maxRows; i++) {
+                    const loTrinh = loTrinhChiTiet[i] || '';
+                    const maChuyen = maChuyens[i] || '';
+
+                    worksheet.addRow({
+                        stt: stt++,
+                        ngay: vehicle.ngay,
+                        bien_so: vehicle.bien_so,
+                        tai_trong: trip.tai_trong_tinh_phi || '',
+                        hinh_thuc: trip.hinh_thuc_tinh_gia || '',
+                        lo_trinh: loTrinh,
+                        quang_duong: trip.quang_duong || '',
+                        don_gia: trip.don_gia || '',
+                        ve_cau_duong: '',
+                        phi_duong_tai: '',
+                        ty_le_ontime: '100%',
+                        thanh_tien: '',
+                        ten_tuyen: vehicle.loai_tuyen_khach_hang || '',
+                        ma_chuyen: maChuyen
+                    });
+                }
+            });
+        });
+
+        // Định dạng header
+        worksheet.getRow(1).font = { bold: true };
+        worksheet.getRow(1).alignment = { vertical: 'middle', horizontal: 'center' };
+
+        // Xuất file
+        const buffer = await workbook.xlsx.writeBuffer();
+        const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = fileName;
+        a.click();
+        window.URL.revokeObjectURL(url);
+
+        console.log('Đã xuất file Excel GHN:', fileName);
+
+    } catch (error) {
+        console.error('Lỗi khi xuất Excel GHN:', error);
+        alert('Có lỗi xảy ra khi xuất file Excel. Vui lòng thử lại.');
+    }
+}
+
+// ===== GHN EVENT LISTENERS =====
+function initGHNEventListeners() {
+    // Apply filter button
+    const applyBtn = document.getElementById('ghnApplyFilter');
+    if (applyBtn) {
+        applyBtn.addEventListener('click', applyGHNFilter);
+    }
+
+    // Reset filter button
+    const resetBtn = document.getElementById('ghnResetFilter');
+    if (resetBtn) {
+        resetBtn.addEventListener('click', () => {
+            document.getElementById('ghnDateSelect').value = new Date().toISOString().split('T')[0];
+            document.getElementById('ghnPlateSelect').value = '';
+            document.getElementById('ghnRouteSelect').value = '';
+            applyGHNFilter();
+        });
+    }
+
+    // Export Excel button
+    const exportBtn = document.getElementById('ghnExportExcel');
+    if (exportBtn) {
+        exportBtn.addEventListener('click', exportGHNToExcel);
+    }
+}
+
 // ===== INITIALIZATION =====
 document.addEventListener('DOMContentLoaded', () => {
     initReconciliationTabs();
     initJNTEventListeners();
+    initGHNEventListeners();
 
     // Load J&T data if on reconciliation page
     const doiSoatSection = document.getElementById('doiSoatSection');

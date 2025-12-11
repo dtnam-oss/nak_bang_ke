@@ -41,6 +41,20 @@ function doGet(e) {
     }
   }
 
+  // Nếu có parameter 'action=getGHNReportData', trả về JSON data từ báo cáo GHN
+  if (e.parameter.action === 'getGHNReportData') {
+    var result = createGHNReport('chi_tiet_chuyen_di', 'bao_cao_ghn');
+    if (result.success) {
+      return ContentService
+        .createTextOutput(JSON.stringify(result.data))
+        .setMimeType(ContentService.MimeType.JSON);
+    } else {
+      return ContentService
+        .createTextOutput(JSON.stringify({}))
+        .setMimeType(ContentService.MimeType.JSON);
+    }
+  }
+
   // Nếu không có parameter, trả về HTML page
   var template = HtmlService.createTemplateFromFile('Index');
   return template
@@ -961,6 +975,322 @@ function writeReportToSheet(reportData, targetSheetName) {
 function testCreateJNTReport() {
   var result = createJNTReport('chi_tiet_chuyen_di', 'bao_cao_jnt_tuyen_nhanh');
   Logger.log('=== KẾT QUẢ TEST ===');
+  Logger.log(JSON.stringify(result, null, 2));
+  return result;
+}
+
+// ===== HÀM TẠO BÁO CÁO GHN =====
+
+/**
+ * Hàm truy vấn dữ liệu chuyến đi và tạo báo cáo GHN dưới dạng Nested JSON Object
+ * Cấu trúc: { "2025-11-27": { "Tuyến nhanh": { "29GQ2506": { chi_tiet_chuyen_di: [...], tong_chuyen: 2, ... } } } }
+ * Truy vấn: data[ngay][loai_tuyen_khach_hang][bien_so]
+ *
+ * @param {string} sheetNameSource - Tên sheet nguồn (mặc định: "chi_tiet_chuyen_di")
+ * @param {string} sheetNameTarget - Tên sheet đích (mặc định: "bao_cao_ghn")
+ * @return {Object} Nested JSON object hoặc error object
+ */
+function createGHNReport(sheetNameSource, sheetNameTarget) {
+  try {
+    // Sử dụng giá trị mặc định nếu không truyền tham số
+    var sourceSheetName = sheetNameSource || 'chi_tiet_chuyen_di';
+    var targetSheetName = sheetNameTarget || 'bao_cao_ghn';
+
+    Logger.log('=== BẮT ĐẦU TẠO BÁO CÁO GHN ===');
+    Logger.log('Source: ' + SOURCE_SHEET_ID + ' / ' + sourceSheetName);
+    Logger.log('Target: ' + TARGET_SHEET_ID + ' / ' + targetSheetName);
+
+    // 1. Mở source spreadsheet
+    var sourceSpreadsheet = SpreadsheetApp.openById(SOURCE_SHEET_ID);
+    var sourceSheet = sourceSpreadsheet.getSheetByName(sourceSheetName);
+
+    if (!sourceSheet) {
+      throw new Error('Sheet "' + sourceSheetName + '" không tồn tại trong source spreadsheet');
+    }
+
+    // 2. Lấy dữ liệu từ source sheet
+    var sourceData = sourceSheet.getDataRange().getValues();
+
+    if (sourceData.length <= 1) {
+      Logger.log('Không có dữ liệu để xử lý');
+      return {
+        success: false,
+        message: 'Không có dữ liệu trong sheet nguồn'
+      };
+    }
+
+    var headers = sourceData[0];
+    Logger.log('Headers: ' + headers.join(', '));
+
+    // 3. Tìm index của các cột cần thiết
+    var colIndexes = findColumnIndexes(headers, [
+      'ngay_chuyen_di',
+      'bien_kiem_soat',
+      'loai_tuyen_khach_hang',
+      'tai_trong_tinh_phi',
+      'hinh_thuc_tinh_gia',
+      'lo_trinh',
+      'lo_trinh_chi_tiet_theo_diem',
+      'quang_duong',
+      'don_gia',
+      'ma_chuyen_di_kh',
+      'ma_khach_hang'
+    ]);
+
+    // Kiểm tra các cột bắt buộc
+    var requiredCols = ['ngay_chuyen_di', 'bien_kiem_soat', 'loai_tuyen_khach_hang'];
+    var missingCols = [];
+    for (var i = 0; i < requiredCols.length; i++) {
+      if (colIndexes[requiredCols[i]] === -1) {
+        missingCols.push(requiredCols[i]);
+      }
+    }
+
+    if (missingCols.length > 0) {
+      throw new Error('Không tìm thấy các cột bắt buộc: ' + missingCols.join(', '));
+    }
+
+    Logger.log('Column indexes: ' + JSON.stringify(colIndexes));
+
+    // 4. Tạo Nested JSON Object
+    var reportData = buildGHNReportData(sourceData, colIndexes);
+
+    Logger.log('Đã xử lý ' + Object.keys(reportData).length + ' ngày');
+
+    // Đếm tổng số xe và loại tuyến
+    var totalVehicles = 0;
+    var totalTripTypes = 0;
+    for (var date in reportData) {
+      for (var loaiTuyen in reportData[date]) {
+        totalTripTypes++;
+        totalVehicles += Object.keys(reportData[date][loaiTuyen]).length;
+      }
+    }
+    Logger.log('Tổng số loại tuyến: ' + totalTripTypes);
+    Logger.log('Tổng số xe: ' + totalVehicles);
+
+    // 5. Ghi dữ liệu vào target sheet
+    var writeResult = writeGHNReportToSheet(reportData, targetSheetName);
+
+    Logger.log('=== HOÀN THÀNH TẠO BÁO CÁO GHN ===');
+
+    return {
+      success: true,
+      message: 'Tạo báo cáo GHN thành công',
+      stats: {
+        totalDays: Object.keys(reportData).length,
+        totalTripTypes: totalTripTypes,
+        totalVehicles: totalVehicles,
+        rowsWritten: writeResult.rowsWritten
+      },
+      data: reportData
+    };
+
+  } catch (error) {
+    Logger.log('ERROR in createGHNReport: ' + error.toString());
+    return {
+      success: false,
+      message: 'Lỗi: ' + error.toString()
+    };
+  }
+}
+
+/**
+ * Xây dựng Nested JSON Object từ dữ liệu cho báo cáo GHN
+ * @param {Array} data - Dữ liệu từ sheet
+ * @param {Object} colIndexes - Index của các cột
+ * @return {Object} Nested object: {date: {loai_tuyen_khach_hang: {bien_so: {chi_tiet}}}}
+ */
+function buildGHNReportData(data, colIndexes) {
+  var reportData = {};
+
+  // Duyệt qua từng dòng (bỏ qua header)
+  for (var i = 1; i < data.length; i++) {
+    var row = data[i];
+
+    // Lấy giá trị các cột key chính
+    var ngayChuyen = row[colIndexes.ngay_chuyen_di];
+    var bienSo = row[colIndexes.bien_kiem_soat];
+    var loaiTuyenKhachHang = row[colIndexes.loai_tuyen_khach_hang];
+
+    // Lấy giá trị chi tiết chuyến đi
+    var taiTrong = colIndexes.tai_trong_tinh_phi !== -1 ? row[colIndexes.tai_trong_tinh_phi] : '';
+    var hinhThucTinhGia = colIndexes.hinh_thuc_tinh_gia !== -1 ? row[colIndexes.hinh_thuc_tinh_gia] : '';
+    var loTrinh = colIndexes.lo_trinh !== -1 ? row[colIndexes.lo_trinh] : '';
+    var loTrinhChiTiet = colIndexes.lo_trinh_chi_tiet_theo_diem !== -1 ? row[colIndexes.lo_trinh_chi_tiet_theo_diem] : '';
+    var quangDuong = colIndexes.quang_duong !== -1 ? row[colIndexes.quang_duong] : '';
+    var donGia = colIndexes.don_gia !== -1 ? row[colIndexes.don_gia] : '';
+    var maChuyen = colIndexes.ma_chuyen_di_kh !== -1 ? row[colIndexes.ma_chuyen_di_kh] : '';
+    var maKhachHang = colIndexes.ma_khach_hang !== -1 ? row[colIndexes.ma_khach_hang] : '';
+
+    // Bỏ qua dòng không có ngày hoặc biển số
+    if (!ngayChuyen || !bienSo) {
+      continue;
+    }
+
+    // Điều kiện lọc: chỉ lấy dữ liệu của khách hàng KH002
+    if (!maKhachHang || maKhachHang.toString().trim() !== 'KH002') {
+      continue;
+    }
+
+    // Format ngày về dạng YYYY-MM-DD
+    var dateKey = formatDateKey(ngayChuyen);
+
+    // Format biển số (trim whitespace)
+    var bienSoKey = bienSo.toString().trim();
+
+    // Format loại tuyến khách hàng (trim, nếu rỗng thì dùng "Khác")
+    var loaiTuyenKey = (loaiTuyenKhachHang && loaiTuyenKhachHang.toString().trim()) || 'Khác';
+
+    // Khởi tạo object cho ngày nếu chưa có
+    if (!reportData[dateKey]) {
+      reportData[dateKey] = {};
+    }
+
+    // Khởi tạo object cho loại tuyến nếu chưa có
+    if (!reportData[dateKey][loaiTuyenKey]) {
+      reportData[dateKey][loaiTuyenKey] = {};
+    }
+
+    // Khởi tạo object cho xe nếu chưa có
+    if (!reportData[dateKey][loaiTuyenKey][bienSoKey]) {
+      reportData[dateKey][loaiTuyenKey][bienSoKey] = {
+        bien_so: bienSoKey,
+        ngay: dateKey,
+        loai_tuyen_khach_hang: loaiTuyenKey,
+        chi_tiet_chuyen_di: [],
+        tong_chuyen: 0,
+        tong_quang_duong: 0,
+        tong_tai_trong: 0
+      };
+    }
+
+    // Parse lộ trình chi tiết theo điểm
+    var loTrinhChiTietParsed = parseRouteDetail(loTrinhChiTiet);
+
+    // Parse mã chuyến (có thể là nhiều giá trị)
+    var maChuyens = parseMultipleValues(maChuyen);
+
+    // Thêm chi tiết chuyến đi
+    reportData[dateKey][loaiTuyenKey][bienSoKey].chi_tiet_chuyen_di.push({
+      tai_trong_tinh_phi: taiTrong || '',
+      hinh_thuc_tinh_gia: hinhThucTinhGia || '',
+      lo_trinh: loTrinh || '',
+      lo_trinh_chi_tiet_theo_diem: loTrinhChiTietParsed,
+      quang_duong: quangDuong || '',
+      don_gia: donGia || '',
+      ma_chuyen_di_kh: maChuyens
+    });
+
+    // Cập nhật tổng số chuyến
+    reportData[dateKey][loaiTuyenKey][bienSoKey].tong_chuyen += 1;
+
+    // Cập nhật tổng quãng đường (nếu là số)
+    if (typeof quangDuong === 'number') {
+      reportData[dateKey][loaiTuyenKey][bienSoKey].tong_quang_duong += quangDuong;
+    } else if (typeof quangDuong === 'string' && quangDuong) {
+      var numValue = parseFloat(quangDuong.replace(/[^\d.-]/g, ''));
+      if (!isNaN(numValue)) {
+        reportData[dateKey][loaiTuyenKey][bienSoKey].tong_quang_duong += numValue;
+      }
+    }
+
+    // Cập nhật tổng tải trọng (nếu là số)
+    if (typeof taiTrong === 'number') {
+      reportData[dateKey][loaiTuyenKey][bienSoKey].tong_tai_trong += taiTrong;
+    } else if (typeof taiTrong === 'string' && taiTrong) {
+      var numValue = parseFloat(taiTrong.replace(/[^\d.-]/g, ''));
+      if (!isNaN(numValue)) {
+        reportData[dateKey][loaiTuyenKey][bienSoKey].tong_tai_trong += numValue;
+      }
+    }
+  }
+
+  return reportData;
+}
+
+/**
+ * Ghi dữ liệu báo cáo GHN vào target sheet
+ * @param {Object} reportData - Nested JSON object
+ * @param {string} targetSheetName - Tên sheet đích
+ * @return {Object} Kết quả ghi dữ liệu
+ */
+function writeGHNReportToSheet(reportData, targetSheetName) {
+  try {
+    var targetSpreadsheet = SpreadsheetApp.openById(TARGET_SHEET_ID);
+    var targetSheet = targetSpreadsheet.getSheetByName(targetSheetName);
+
+    // Tạo sheet mới nếu chưa có
+    if (!targetSheet) {
+      targetSheet = targetSpreadsheet.insertSheet(targetSheetName);
+      Logger.log('Đã tạo sheet mới: ' + targetSheetName);
+    }
+
+    // Clear dữ liệu cũ
+    targetSheet.clear();
+
+    // Tạo header
+    var headers = [
+      'ngay',
+      'loai_tuyen_khach_hang',
+      'bien_so',
+      'chi_tiet_chuyen_di',
+      'tong_chuyen',
+      'tong_quang_duong',
+      'tong_tai_trong'
+    ];
+
+    // Ghi header
+    targetSheet.getRange(1, 1, 1, headers.length).setValues([headers]);
+    targetSheet.getRange(1, 1, 1, headers.length).setFontWeight('bold');
+
+    // Chuyển nested object thành array để ghi
+    var rowsToWrite = [];
+
+    for (var date in reportData) {
+      for (var loaiTuyen in reportData[date]) {
+        for (var bienSo in reportData[date][loaiTuyen]) {
+          var vehicleData = reportData[date][loaiTuyen][bienSo];
+
+          rowsToWrite.push([
+            vehicleData.ngay,
+            vehicleData.loai_tuyen_khach_hang,
+            vehicleData.bien_so,
+            JSON.stringify(vehicleData.chi_tiet_chuyen_di),
+            vehicleData.tong_chuyen,
+            vehicleData.tong_quang_duong,
+            vehicleData.tong_tai_trong
+          ]);
+        }
+      }
+    }
+
+    // Ghi dữ liệu
+    if (rowsToWrite.length > 0) {
+      targetSheet.getRange(2, 1, rowsToWrite.length, headers.length).setValues(rowsToWrite);
+      Logger.log('Đã ghi ' + rowsToWrite.length + ' dòng vào sheet');
+    }
+
+    // Format sheet
+    targetSheet.autoResizeColumns(1, headers.length);
+
+    return {
+      success: true,
+      rowsWritten: rowsToWrite.length
+    };
+
+  } catch (error) {
+    Logger.log('ERROR in writeGHNReportToSheet: ' + error.toString());
+    throw error;
+  }
+}
+
+/**
+ * Hàm test tạo báo cáo GHN
+ */
+function testCreateGHNReport() {
+  var result = createGHNReport('chi_tiet_chuyen_di', 'bao_cao_ghn');
+  Logger.log('=== KẾT QUẢ TEST GHN ===');
   Logger.log(JSON.stringify(result, null, 2));
   return result;
 }

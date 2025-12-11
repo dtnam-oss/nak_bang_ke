@@ -314,8 +314,88 @@
 
             <!-- GHN Tab Content -->
             <div id="ghnTabContent" class="tab-content" style="display: none;">
-                <div class="empty-state">
-                    <p>Chức năng GHN đang được phát triển</p>
+                <!-- Filter Section -->
+                <div class="filter-section">
+                    <div class="filter-container">
+                        <div class="filter-item">
+                            <label for="ghnDateSelect">Ngày:</label>
+                            <input type="date" id="ghnDateSelect" class="date-input">
+                        </div>
+
+                        <div class="filter-item">
+                            <label for="ghnPlateSelect">Biển số:</label>
+                            <select id="ghnPlateSelect" class="select-dropdown">
+                                <option value="">-- Tất cả --</option>
+                            </select>
+                        </div>
+
+                        <div class="filter-item">
+                            <label for="ghnRouteSelect">Loại tuyến:</label>
+                            <select id="ghnRouteSelect" class="select-dropdown">
+                                <option value="">-- Tất cả --</option>
+                            </select>
+                        </div>
+
+                        <div class="filter-item action-buttons-inline">
+                            <button id="ghnApplyFilter" class="icon-btn icon-btn-primary" title="Áp dụng bộ lọc">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <polyline points="20 6 9 17 4 12"></polyline>
+                                </svg>
+                            </button>
+                            <button id="ghnResetFilter" class="icon-btn icon-btn-secondary" title="Đặt lại bộ lọc">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <polyline points="23 4 23 10 17 10"></polyline>
+                                    <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path>
+                                </svg>
+                            </button>
+                            <button id="ghnExportExcel" class="icon-btn icon-btn-success" title="Xuất file Excel">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                                    <polyline points="7 10 12 15 17 10"></polyline>
+                                    <line x1="12" y1="15" x2="12" y2="3"></line>
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Table Section -->
+                <div id="ghnTableSection" class="table-section" style="display: block;">
+                    <div class="table-container">
+                        <table id="ghnDataTable">
+                            <thead>
+                                <tr>
+                                    <th>STT</th>
+                                    <th>Ngày</th>
+                                    <th>BiểnSố</th>
+                                    <th>Trọng Tải<br>Yêu Cầu</th>
+                                    <th>Hình Thức<br>Tính Giá</th>
+                                    <th>Lộ Trình</th>
+                                    <th>Số KM</th>
+                                    <th>Đơn giá<br>khung</th>
+                                    <th>Về cầu<br>đường</th>
+                                    <th>Phí đường tải</th>
+                                    <th>Tỷ lệ Ontime</th>
+                                    <th>Thành Tiền<br>(chưa VAT)</th>
+                                    <th>Tên tuyến</th>
+                                    <th>Mã chuyến</th>
+                                </tr>
+                            </thead>
+                            <tbody id="ghnTableBody">
+                                <!-- Data will be inserted here by JavaScript -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- No Data Message -->
+                <div id="ghnNoData" class="no-data" style="display: none;">
+                    <p>Không có dữ liệu phù hợp với bộ lọc</p>
+                </div>
+
+                <!-- Loading -->
+                <div id="ghnLoading" class="loading" style="display: none;">
+                    <p>Đang tải dữ liệu...</p>
                 </div>
             </div>
 
