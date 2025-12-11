@@ -974,9 +974,14 @@ document.addEventListener('DOMContentLoaded', () => {
     initJNTEventListeners();
     initGHNEventListeners();
 
-    // Load J&T data if on reconciliation page
-    const doiSoatSection = document.getElementById('doiSoatSection');
-    if (doiSoatSection && doiSoatSection.style.display !== 'none') {
+    // Không load dữ liệu ngay khi trang mở vì mặc định hiển thị menu "Báo cáo"
+    // Dữ liệu sẽ được load khi người dùng chuyển sang menu "Đối soát"
+});
+
+// Export function để script.js có thể gọi khi chuyển menu
+window.initReconciliationPage = function() {
+    // Load J&T data khi mở trang Đối soát lần đầu
+    if (!jntReportData || Object.keys(jntReportData).length === 0) {
         loadJNTData();
     }
-});
+};

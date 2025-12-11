@@ -357,6 +357,9 @@ function initNavigation() {
                     break;
                 case 'doi-soat':
                     document.getElementById('doiSoatSection').style.display = 'block';
+                    if (typeof window.initReconciliationPage === 'function') {
+                        window.initReconciliationPage();
+                    }
                     break;
                 case 'phuong-tien':
                     document.getElementById('phuongTienSection').style.display = 'block';
@@ -414,6 +417,11 @@ function showNotification(message) {
 document.addEventListener('DOMContentLoaded', () => {
     init();
     initNavigation();
+
+    // Load dữ liệu cho trang Báo cáo (mặc định khi load trang)
+    if (typeof initReportPage === 'function') {
+        initReportPage();
+    }
 
     // Refresh button handler
     const refreshBtn = document.getElementById('refreshDataBtn');
