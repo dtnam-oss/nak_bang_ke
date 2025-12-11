@@ -414,4 +414,19 @@ function showNotification(message) {
 document.addEventListener('DOMContentLoaded', () => {
     init();
     initNavigation();
+
+    // Refresh button handler
+    const refreshBtn = document.getElementById('refreshDataBtn');
+    if (refreshBtn) {
+        refreshBtn.addEventListener('click', () => {
+            // Add rotation animation
+            refreshBtn.style.pointerEvents = 'none';
+            refreshBtn.querySelector('svg').style.animation = 'spin 1s linear';
+
+            // Reload the page to fetch fresh data
+            setTimeout(() => {
+                location.reload();
+            }, 500);
+        });
+    }
 });
