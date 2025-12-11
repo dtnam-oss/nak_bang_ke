@@ -195,78 +195,121 @@
 
         <!-- Đối soát Section -->
         <div id="doiSoatSection" class="page-section">
-        <!-- Filter Section -->
-        <div class="filter-section">
-        <div class="filter-container">
-            <div class="filter-item">
-                <label for="plateSelect">Biển kiểm soát:</label>
-                <select id="plateSelect" class="select-dropdown">
-                    <option value="">-- Chọn biển số --</option>
-                </select>
+            <!-- Tab Menu -->
+            <div class="reconciliation-tabs">
+                <button class="tab-btn active" data-tab="jnt">J&T</button>
+                <button class="tab-btn" data-tab="ghn">GHN</button>
+                <button class="tab-btn" data-tab="other">Other</button>
             </div>
 
-            <div class="filter-item">
-                <label for="customerSelect">Tên khách hàng:</label>
-                <select id="customerSelect" class="select-dropdown">
-                    <option value="">-- Chọn khách hàng --</option>
-                </select>
+            <!-- J&T Tab Content -->
+            <div id="jntTabContent" class="tab-content active">
+                <!-- Filter Section -->
+                <div class="filter-section">
+                    <div class="filter-container">
+                        <div class="filter-item">
+                            <label for="jntDisplayTypeSelect">Hiển thị theo:</label>
+                            <select id="jntDisplayTypeSelect" class="select-dropdown">
+                                <option value="theo-ca">Theo ca</option>
+                                <option value="theo-tuyen">Theo tuyến</option>
+                            </select>
+                        </div>
+
+                        <div class="filter-item">
+                            <label for="jntDateSelect">Ngày:</label>
+                            <input type="date" id="jntDateSelect" class="date-input">
+                        </div>
+
+                        <div class="filter-item">
+                            <label for="jntPlateSelect">Biển số:</label>
+                            <select id="jntPlateSelect" class="select-dropdown">
+                                <option value="">-- Tất cả --</option>
+                            </select>
+                        </div>
+
+                        <div class="filter-item">
+                            <label for="jntRouteSelect">Loại tuyến:</label>
+                            <select id="jntRouteSelect" class="select-dropdown">
+                                <option value="">-- Tất cả --</option>
+                            </select>
+                        </div>
+
+                        <div class="filter-item">
+                            <button id="jntApplyFilter" class="btn-primary">Áp dụng</button>
+                            <button id="jntResetFilter" class="btn-secondary">Đặt lại</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Table Section - Theo Ca -->
+                <div id="jntTableTheoCa" class="table-section" style="display: block;">
+                    <div class="table-container">
+                        <table id="jntDataTableTheoCa">
+                            <thead>
+                                <tr>
+                                    <th>STT</th>
+                                    <th>Ngày</th>
+                                    <th>BiểnSố</th>
+                                    <th>Mã Tem</th>
+                                    <th>Điểm đi - Điểm đến</th>
+                                    <th>Thể tích</th>
+                                    <th>Loại ca</th>
+                                </tr>
+                            </thead>
+                            <tbody id="jntTableBodyTheoCa">
+                                <!-- Data will be inserted here by JavaScript -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Table Section - Theo Tuyến -->
+                <div id="jntTableTheoTuyen" class="table-section" style="display: none;">
+                    <div class="table-container">
+                        <table id="jntDataTableTheoTuyen">
+                            <thead>
+                                <tr>
+                                    <th>STT</th>
+                                    <th>Ngày</th>
+                                    <th>BiểnSố</th>
+                                    <th>Điểm đi - Điểm đến</th>
+                                    <th>Tem chiều đi</th>
+                                    <th>Tem chiều về</th>
+                                    <th>Thể tích</th>
+                                </tr>
+                            </thead>
+                            <tbody id="jntTableBodyTheoTuyen">
+                                <!-- Data will be inserted here by JavaScript -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- No Data Message -->
+                <div id="jntNoData" class="no-data" style="display: none;">
+                    <p>Không có dữ liệu phù hợp với bộ lọc</p>
+                </div>
+
+                <!-- Loading -->
+                <div id="jntLoading" class="loading" style="display: none;">
+                    <p>Đang tải dữ liệu...</p>
+                </div>
             </div>
 
-            <div class="filter-item">
-                <label for="routeSelect">Loại tuyến:</label>
-                <select id="routeSelect" class="select-dropdown">
-                    <option value="">-- Chọn loại tuyến --</option>
-                </select>
+            <!-- GHN Tab Content -->
+            <div id="ghnTabContent" class="tab-content" style="display: none;">
+                <div class="empty-state">
+                    <p>Chức năng GHN đang được phát triển</p>
+                </div>
             </div>
 
-            <div class="filter-item">
-                <label for="fromDate">Từ ngày:</label>
-                <input type="date" id="fromDate" class="date-input">
-            </div>
-
-            <div class="filter-item">
-                <label for="toDate">Đến ngày:</label>
-                <input type="date" id="toDate" class="date-input">
+            <!-- Other Tab Content -->
+            <div id="otherTabContent" class="tab-content" style="display: none;">
+                <div class="empty-state">
+                    <p>Chức năng Other đang được phát triển</p>
+                </div>
             </div>
         </div>
-    </div>
-
-    <!-- Table Section -->
-    <div class="table-section">
-        <div class="table-container">
-            <table id="dataTable">
-                <thead>
-                    <tr>
-                        <th>STT</th>
-                        <th>Ngày tạo</th>
-                        <th>Biển kiểm soát</th>
-                        <th>Tên khách hàng</th>
-                        <th>Loại tuyến</th>
-                        <th style="width: 400px;">Chi tiết chuyến đi</th>
-                    </tr>
-                </thead>
-                <tbody id="tableBody">
-                    <!-- Data will be inserted here by JavaScript -->
-                </tbody>
-            </table>
-        </div>
-
-        <div id="noData" class="no-data" style="display: none;">
-            <p>Không có dữ liệu phù hợp với bộ lọc</p>
-        </div>
-
-        <div class="pagination" id="pagination" style="display: none;">
-            <div class="pagination-info">
-                <span id="paginationInfo">Hiển thị 1-50 / 100 chuyến</span>
-            </div>
-            <div class="pagination-controls">
-                <button class="pagination-btn" id="prevBtn">← Trước</button>
-                <span class="page-number">Trang <span id="currentPage">1</span> / <span id="totalPages">1</span></span>
-                <button class="pagination-btn" id="nextBtn">Sau →</button>
-            </div>
-        </div>
-    </div>
-    </div>
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -274,5 +317,6 @@
     <script src="script.js"></script>
     <script src="report.js"></script>
     <script src="vehicle.js"></script>
+    <script src="reconciliation.js"></script>
 </body>
 </html>

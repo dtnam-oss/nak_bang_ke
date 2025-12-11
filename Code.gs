@@ -27,6 +27,20 @@ function doGet(e) {
       .setMimeType(ContentService.MimeType.JSON);
   }
 
+  // Nếu có parameter 'action=getJNTReportData', trả về JSON data từ báo cáo J&T
+  if (e.parameter.action === 'getJNTReportData') {
+    var result = createJNTReport('chi_tiet_chuyen_di', 'bao_cao_jnt_tuyen_nhanh');
+    if (result.success) {
+      return ContentService
+        .createTextOutput(JSON.stringify(result.data))
+        .setMimeType(ContentService.MimeType.JSON);
+    } else {
+      return ContentService
+        .createTextOutput(JSON.stringify({}))
+        .setMimeType(ContentService.MimeType.JSON);
+    }
+  }
+
   // Nếu không có parameter, trả về HTML page
   var template = HtmlService.createTemplateFromFile('Index');
   return template
@@ -560,4 +574,393 @@ function debugSheetStructure() {
   } catch (error) {
     Logger.log('Error: ' + error);
   }
+}
+
+// ===== HÀM TẠO BÁO CÁO J&T TUYẾN NHANH =====
+
+// Spreadsheet IDs
+var SOURCE_SHEET_ID = '1fzepYrS-o5zc01h7nQFzJSOwagoTvOgoiDQHrTLB12E';
+var TARGET_SHEET_ID = '18pS9YMZSwZCVBt_anIGn3GN4qFoPpMtALQm4YvMDd-g';
+
+/**
+ * Hàm truy vấn dữ liệu chuyến đi và tạo báo cáo dưới dạng Nested JSON Object
+ * Cấu trúc: { "2025-11-27": { "Tuyến nhanh": { "29GQ2506": { chi_tiet_chuyen_di: [...], tong_chuyen: 2, ... } } } }
+ * Truy vấn: data[ngay][loai_chuyen][bien_so]
+ *
+ * @param {string} sheetNameSource - Tên sheet nguồn (mặc định: "chi_tiet_chuyen_di")
+ * @param {string} sheetNameTarget - Tên sheet đích (mặc định: "bao_cao_jnt_tuyen_nhanh")
+ * @return {Object} Nested JSON object hoặc error object
+ */
+function createJNTReport(sheetNameSource, sheetNameTarget) {
+  try {
+    // Sử dụng giá trị mặc định nếu không truyền tham số
+    var sourceSheetName = sheetNameSource || 'chi_tiet_chuyen_di';
+    var targetSheetName = sheetNameTarget || 'bao_cao_jnt_tuyen_nhanh';
+
+    Logger.log('=== BẮT ĐẦU TẠO BÁO CÁO J&T ===');
+    Logger.log('Source: ' + SOURCE_SHEET_ID + ' / ' + sourceSheetName);
+    Logger.log('Target: ' + TARGET_SHEET_ID + ' / ' + targetSheetName);
+
+    // 1. Mở source spreadsheet
+    var sourceSpreadsheet = SpreadsheetApp.openById(SOURCE_SHEET_ID);
+    var sourceSheet = sourceSpreadsheet.getSheetByName(sourceSheetName);
+
+    if (!sourceSheet) {
+      throw new Error('Sheet "' + sourceSheetName + '" không tồn tại trong source spreadsheet');
+    }
+
+    // 2. Lấy dữ liệu từ source sheet
+    var sourceData = sourceSheet.getDataRange().getValues();
+
+    if (sourceData.length <= 1) {
+      Logger.log('Không có dữ liệu để xử lý');
+      return {
+        success: false,
+        message: 'Không có dữ liệu trong sheet nguồn'
+      };
+    }
+
+    var headers = sourceData[0];
+    Logger.log('Headers: ' + headers.join(', '));
+
+    // 3. Tìm index của các cột cần thiết
+    var colIndexes = findColumnIndexes(headers, [
+      'ngay_chuyen_di',
+      'bien_kiem_soat',
+      'ma_chuyen_di_kh',
+      'lo_trinh_chi_tiet_theo_diem',
+      'tai_trong_tinh_phi',
+      'loai_ca',
+      'ma_khach_hang',
+      'loai_chuyen'
+    ]);
+
+    // Kiểm tra các cột bắt buộc
+    var missingCols = [];
+    for (var key in colIndexes) {
+      if (colIndexes[key] === -1) {
+        missingCols.push(key);
+      }
+    }
+
+    if (missingCols.length > 0) {
+      throw new Error('Không tìm thấy các cột: ' + missingCols.join(', '));
+    }
+
+    Logger.log('Column indexes: ' + JSON.stringify(colIndexes));
+
+    // 4. Tạo Nested JSON Object
+    var reportData = buildNestedReportData(sourceData, colIndexes);
+
+    Logger.log('Đã xử lý ' + Object.keys(reportData).length + ' ngày');
+
+    // Đếm tổng số xe và loại chuyến
+    var totalVehicles = 0;
+    var totalTripTypes = 0;
+    for (var date in reportData) {
+      for (var loaiChuyen in reportData[date]) {
+        totalTripTypes++;
+        totalVehicles += Object.keys(reportData[date][loaiChuyen]).length;
+      }
+    }
+    Logger.log('Tổng số loại chuyến: ' + totalTripTypes);
+    Logger.log('Tổng số xe: ' + totalVehicles);
+
+    // 5. Ghi dữ liệu vào target sheet
+    var writeResult = writeReportToSheet(reportData, targetSheetName);
+
+    Logger.log('=== HOÀN THÀNH TẠO BÁO CÁO ===');
+
+    return {
+      success: true,
+      message: 'Tạo báo cáo thành công',
+      stats: {
+        totalDays: Object.keys(reportData).length,
+        totalTripTypes: totalTripTypes,
+        totalVehicles: totalVehicles,
+        rowsWritten: writeResult.rowsWritten
+      },
+      data: reportData
+    };
+
+  } catch (error) {
+    Logger.log('ERROR in createJNTReport: ' + error.toString());
+    return {
+      success: false,
+      message: 'Lỗi: ' + error.toString()
+    };
+  }
+}
+
+/**
+ * Tìm index của các cột trong header
+ * @param {Array} headers - Mảng header
+ * @param {Array} columnNames - Mảng tên cột cần tìm
+ * @return {Object} Object chứa index của từng cột
+ */
+function findColumnIndexes(headers, columnNames) {
+  var indexes = {};
+
+  for (var i = 0; i < columnNames.length; i++) {
+    var colName = columnNames[i];
+    indexes[colName] = -1;
+
+    for (var j = 0; j < headers.length; j++) {
+      if (headers[j] === colName) {
+        indexes[colName] = j;
+        break;
+      }
+    }
+  }
+
+  return indexes;
+}
+
+/**
+ * Xây dựng Nested JSON Object từ dữ liệu
+ * @param {Array} data - Dữ liệu từ sheet
+ * @param {Object} colIndexes - Index của các cột
+ * @return {Object} Nested object: {date: {loai_chuyen: {bien_so: {chi_tiet}}}}
+ */
+function buildNestedReportData(data, colIndexes) {
+  var reportData = {};
+
+  // Duyệt qua từng dòng (bỏ qua header)
+  for (var i = 1; i < data.length; i++) {
+    var row = data[i];
+
+    // Lấy giá trị các cột
+    var ngayChuyen = row[colIndexes.ngay_chuyen_di];
+    var bienSo = row[colIndexes.bien_kiem_soat];
+    var maTem = row[colIndexes.ma_chuyen_di_kh];
+    var diemDiDen = row[colIndexes.lo_trinh_chi_tiet_theo_diem];
+    var theTich = row[colIndexes.tai_trong_tinh_phi];
+    var loaiCa = row[colIndexes.loai_ca];
+    var maKhachHang = row[colIndexes.ma_khach_hang];
+    var loaiChuyen = row[colIndexes.loai_chuyen];
+
+    // Bỏ qua dòng không có ngày hoặc biển số
+    if (!ngayChuyen || !bienSo) {
+      continue;
+    }
+
+    // Điều kiện lọc: chỉ lấy dữ liệu của khách hàng KH001
+    if (!maKhachHang || maKhachHang.toString().trim() !== 'KH001') {
+      continue;
+    }
+
+    // Format ngày về dạng YYYY-MM-DD
+    var dateKey = formatDateKey(ngayChuyen);
+
+    // Format biển số (trim whitespace)
+    var bienSoKey = bienSo.toString().trim();
+
+    // Format loại chuyến (trim, nếu rỗng thì dùng "Khác")
+    var loaiChuyenKey = (loaiChuyen && loaiChuyen.toString().trim()) || 'Khác';
+
+    // Khởi tạo object cho ngày nếu chưa có
+    if (!reportData[dateKey]) {
+      reportData[dateKey] = {};
+    }
+
+    // Khởi tạo object cho loại chuyến nếu chưa có
+    if (!reportData[dateKey][loaiChuyenKey]) {
+      reportData[dateKey][loaiChuyenKey] = {};
+    }
+
+    // Khởi tạo object cho xe nếu chưa có
+    if (!reportData[dateKey][loaiChuyenKey][bienSoKey]) {
+      reportData[dateKey][loaiChuyenKey][bienSoKey] = {
+        bien_so: bienSoKey,
+        ngay: dateKey,
+        loai_chuyen: loaiChuyenKey,
+        chi_tiet_chuyen_di: [],
+        tong_chuyen: 0,
+        tong_the_tich: 0
+      };
+    }
+
+    // Parse ma_tem (có thể là nhiều giá trị)
+    var maTems = parseMultipleValues(maTem);
+
+    // Parse điểm đi - điểm đến
+    var diemDiDenParsed = parseRouteDetail(diemDiDen);
+
+    // Thêm chi tiết chuyến đi
+    reportData[dateKey][loaiChuyenKey][bienSoKey].chi_tiet_chuyen_di.push({
+      ma_tem: maTems,
+      diem_di_diem_den: diemDiDenParsed,
+      the_tich: theTich || '',
+      loai_ca: loaiCa || ''
+    });
+
+    // Cập nhật tổng số chuyến
+    reportData[dateKey][loaiChuyenKey][bienSoKey].tong_chuyen += 1;
+
+    // Cập nhật tổng thể tích (nếu là số)
+    if (typeof theTich === 'number') {
+      reportData[dateKey][loaiChuyenKey][bienSoKey].tong_the_tich += theTich;
+    } else if (typeof theTich === 'string') {
+      var numValue = parseFloat(theTich.replace(/[^\d.-]/g, ''));
+      if (!isNaN(numValue)) {
+        reportData[dateKey][loaiChuyenKey][bienSoKey].tong_the_tich += numValue;
+      }
+    }
+  }
+
+  return reportData;
+}
+
+/**
+ * Format ngày về dạng YYYY-MM-DD
+ * @param {Date|string} dateValue - Giá trị ngày
+ * @return {string} Ngày dạng YYYY-MM-DD
+ */
+function formatDateKey(dateValue) {
+  if (dateValue instanceof Date) {
+    return Utilities.formatDate(dateValue, Session.getScriptTimeZone(), 'yyyy-MM-dd');
+  } else if (typeof dateValue === 'string') {
+    // Nếu đã là string, kiểm tra format
+    if (dateValue.match(/^\d{4}-\d{2}-\d{2}$/)) {
+      return dateValue;
+    }
+    // Convert DD/MM/YYYY to YYYY-MM-DD
+    if (dateValue.match(/^\d{2}\/\d{2}\/\d{4}$/)) {
+      var parts = dateValue.split('/');
+      return parts[2] + '-' + parts[1] + '-' + parts[0];
+    }
+  }
+  return dateValue.toString();
+}
+
+/**
+ * Parse giá trị có thể chứa nhiều item (ngăn cách bởi dấu phẩy)
+ * @param {string} value - Giá trị cần parse
+ * @return {Array} Mảng các giá trị
+ */
+function parseMultipleValues(value) {
+  if (!value) return [];
+
+  var strValue = value.toString().trim();
+  if (!strValue) return [];
+
+  // Split bởi dấu phẩy và trim từng phần tử
+  return strValue.split(',').map(function(item) {
+    return item.trim();
+  }).filter(function(item) {
+    return item !== '';
+  });
+}
+
+/**
+ * Parse chi tiết lộ trình theo điểm
+ * @param {string} routeDetail - Chi tiết lộ trình
+ * @return {Array} Mảng các điểm
+ */
+function parseRouteDetail(routeDetail) {
+  if (!routeDetail) return [];
+
+  var strValue = routeDetail.toString().trim();
+  if (!strValue) return [];
+
+  // Có thể là JSON array hoặc string ngăn cách bởi dấu
+  try {
+    var parsed = JSON.parse(strValue);
+    if (Array.isArray(parsed)) {
+      return parsed;
+    }
+  } catch (e) {
+    // Không phải JSON, parse như string
+  }
+
+  // Split bởi các ký tự phổ biến: , - > →
+  return strValue.split(/[,\-→>]/).map(function(item) {
+    return item.trim();
+  }).filter(function(item) {
+    return item !== '';
+  });
+}
+
+/**
+ * Ghi dữ liệu báo cáo vào target sheet
+ * @param {Object} reportData - Nested JSON object
+ * @param {string} targetSheetName - Tên sheet đích
+ * @return {Object} Kết quả ghi dữ liệu
+ */
+function writeReportToSheet(reportData, targetSheetName) {
+  try {
+    var targetSpreadsheet = SpreadsheetApp.openById(TARGET_SHEET_ID);
+    var targetSheet = targetSpreadsheet.getSheetByName(targetSheetName);
+
+    // Tạo sheet mới nếu chưa có
+    if (!targetSheet) {
+      targetSheet = targetSpreadsheet.insertSheet(targetSheetName);
+      Logger.log('Đã tạo sheet mới: ' + targetSheetName);
+    }
+
+    // Clear dữ liệu cũ
+    targetSheet.clear();
+
+    // Tạo header
+    var headers = [
+      'ngay',
+      'loai_chuyen',
+      'bien_so',
+      'chi_tiet_chuyen_di',
+      'tong_chuyen',
+      'tong_the_tich'
+    ];
+
+    // Ghi header
+    targetSheet.getRange(1, 1, 1, headers.length).setValues([headers]);
+    targetSheet.getRange(1, 1, 1, headers.length).setFontWeight('bold');
+
+    // Chuyển nested object thành array để ghi
+    var rowsToWrite = [];
+
+    for (var date in reportData) {
+      for (var loaiChuyen in reportData[date]) {
+        for (var bienSo in reportData[date][loaiChuyen]) {
+          var vehicleData = reportData[date][loaiChuyen][bienSo];
+
+          rowsToWrite.push([
+            vehicleData.ngay,
+            vehicleData.loai_chuyen,
+            vehicleData.bien_so,
+            JSON.stringify(vehicleData.chi_tiet_chuyen_di),
+            vehicleData.tong_chuyen,
+            vehicleData.tong_the_tich
+          ]);
+        }
+      }
+    }
+
+    // Ghi dữ liệu
+    if (rowsToWrite.length > 0) {
+      targetSheet.getRange(2, 1, rowsToWrite.length, headers.length).setValues(rowsToWrite);
+      Logger.log('Đã ghi ' + rowsToWrite.length + ' dòng vào sheet');
+    }
+
+    // Format sheet
+    targetSheet.autoResizeColumns(1, headers.length);
+
+    return {
+      success: true,
+      rowsWritten: rowsToWrite.length
+    };
+
+  } catch (error) {
+    Logger.log('ERROR in writeReportToSheet: ' + error.toString());
+    throw error;
+  }
+}
+
+/**
+ * Hàm test tạo báo cáo J&T
+ */
+function testCreateJNTReport() {
+  var result = createJNTReport('chi_tiet_chuyen_di', 'bao_cao_jnt_tuyen_nhanh');
+  Logger.log('=== KẾT QUẢ TEST ===');
+  Logger.log(JSON.stringify(result, null, 2));
+  return result;
 }
