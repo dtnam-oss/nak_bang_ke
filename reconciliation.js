@@ -175,7 +175,7 @@ function applyJNTFilter() {
     }
 }
 
-// Hiển thị dữ liệu theo ca
+// Hiển thị dữ liệu theo ca (gộp theo xe)
 function displayJNTDataTheoCa(data) {
     document.getElementById('jntTableTheoCa').style.display = 'block';
     document.getElementById('jntTableTheoTuyen').style.display = 'none';
@@ -192,32 +192,59 @@ function displayJNTDataTheoCa(data) {
 
     let stt = 1;
 
+    // Gộp dữ liệu theo xe - mỗi xe 1 dòng
     data.forEach(vehicle => {
-        vehicle.chi_tiet_chuyen_di.forEach(trip => {
-            const row = document.createElement('tr');
+        const row = document.createElement('tr');
 
-            // Mã tem - có thể là array
-            const maTem = Array.isArray(trip.ma_tem)
-                ? trip.ma_tem.join(', ')
-                : trip.ma_tem;
+        // Gộp tất cả mã tem của các chuyến đi
+        const allMaTem = [];
+        const allDiemDiDen = [];
+        const allTheTich = [];
+        const allLoaiCa = [];
+
+        vehicle.chi_tiet_chuyen_di.forEach(trip => {
+            // Mã tem
+            if (Array.isArray(trip.ma_tem)) {
+                allMaTem.push(...trip.ma_tem);
+            } else if (trip.ma_tem) {
+                allMaTem.push(trip.ma_tem);
+            }
 
             // Điểm đi - điểm đến
-            const diemDiDen = Array.isArray(trip.diem_di_diem_den)
-                ? trip.diem_di_diem_den.join(' - ')
-                : trip.diem_di_diem_den;
+            if (Array.isArray(trip.diem_di_diem_den)) {
+                allDiemDiDen.push(trip.diem_di_diem_den.join(' - '));
+            } else if (trip.diem_di_diem_den) {
+                allDiemDiDen.push(trip.diem_di_diem_den);
+            }
 
-            row.innerHTML = `
-                <td>${stt++}</td>
-                <td>${vehicle.ngay}</td>
-                <td>${vehicle.bien_so}</td>
-                <td>${maTem || ''}</td>
-                <td>${diemDiDen || ''}</td>
-                <td>${trip.the_tich || ''}</td>
-                <td>${trip.loai_ca || ''}</td>
-            `;
+            // Thể tích
+            if (trip.the_tich) {
+                allTheTich.push(trip.the_tich);
+            }
 
-            tbody.appendChild(row);
+            // Loại ca
+            if (trip.loai_ca) {
+                allLoaiCa.push(trip.loai_ca);
+            }
         });
+
+        // Format hiển thị - xuống dòng cho mỗi item
+        const maTem = allMaTem.join('<br>');
+        const diemDiDen = allDiemDiDen.join('<br>');
+        const theTich = allTheTich.join('<br>');
+        const loaiCa = allLoaiCa.join('<br>');
+
+        row.innerHTML = `
+            <td>${stt++}</td>
+            <td>${vehicle.ngay}</td>
+            <td>${vehicle.bien_so}</td>
+            <td style="white-space: pre-line;">${maTem || ''}</td>
+            <td style="white-space: pre-line;">${diemDiDen || ''}</td>
+            <td style="white-space: pre-line;">${theTich || ''}</td>
+            <td style="white-space: pre-line;">${loaiCa || ''}</td>
+        `;
+
+        tbody.appendChild(row);
     });
 }
 
@@ -315,6 +342,166 @@ function showJNTNoData(show) {
     }
 }
 
+// ===== EXPORT TO EXCEL =====
+
+/**
+ * Xuất dữ liệu J&T ra file Excel
+ */
+function exportJNTToExcel() {
+    if (!jntFilteredData || jntFilteredData.length === 0) {
+        alert('Không có dữ liệu để xuất. Vui lòng chọn bộ lọc và có dữ liệu hiển thị.');
+        return;
+    }
+
+    try {
+        // Lấy loại hiển thị hiện tại
+        const displayType = document.getElementById('jntDisplayTypeSelect').value;
+        const selectedDate = document.getElementById('jntDateSelect').value || 'all';
+
+        let excelData = [];
+        let sheetName = '';
+        let fileName = '';
+
+        if (displayType === 'theo-ca') {
+            // Xuất dữ liệu theo ca
+            sheetName = 'J&T Theo Ca';
+            fileName = `JNT_TheoCa_${selectedDate}.xlsx`;
+
+            // Tạo header
+            excelData.push(['STT', 'Ngày', 'Biển Số', 'Mã Tem', 'Điểm đi - Điểm đến', 'Thể tích', 'Loại ca']);
+
+            // Thêm dữ liệu
+            let stt = 1;
+            jntFilteredData.forEach(vehicle => {
+                // Gộp tất cả mã tem của các chuyến đi
+                const allMaTem = [];
+                const allDiemDiDen = [];
+                const allTheTich = [];
+                const allLoaiCa = [];
+
+                vehicle.chi_tiet_chuyen_di.forEach(trip => {
+                    // Mã tem
+                    if (Array.isArray(trip.ma_tem)) {
+                        allMaTem.push(...trip.ma_tem);
+                    } else if (trip.ma_tem) {
+                        allMaTem.push(trip.ma_tem);
+                    }
+
+                    // Điểm đi - điểm đến
+                    if (Array.isArray(trip.diem_di_diem_den)) {
+                        allDiemDiDen.push(trip.diem_di_diem_den.join(' - '));
+                    } else if (trip.diem_di_diem_den) {
+                        allDiemDiDen.push(trip.diem_di_diem_den);
+                    }
+
+                    // Thể tích
+                    if (trip.the_tich) {
+                        allTheTich.push(trip.the_tich);
+                    }
+
+                    // Loại ca
+                    if (trip.loai_ca) {
+                        allLoaiCa.push(trip.loai_ca);
+                    }
+                });
+
+                // Thêm dòng vào Excel (xuống dòng bằng \n)
+                excelData.push([
+                    stt++,
+                    vehicle.ngay,
+                    vehicle.bien_so,
+                    allMaTem.join('\n'),
+                    allDiemDiDen.join('\n'),
+                    allTheTich.join('\n'),
+                    allLoaiCa.join('\n')
+                ]);
+            });
+
+        } else {
+            // Xuất dữ liệu theo tuyến
+            sheetName = 'J&T Theo Tuyến';
+            fileName = `JNT_TheoTuyen_${selectedDate}.xlsx`;
+
+            // Tạo header
+            excelData.push(['STT', 'Ngày', 'Biển Số', 'Điểm đi - Điểm đến', 'Tem chiều đi', 'Tem chiều về', 'Thể tích']);
+
+            // Thêm dữ liệu
+            let stt = 1;
+            jntFilteredData.forEach(vehicle => {
+                // Group trips by route (diem_di_diem_den)
+                const routeGroups = {};
+
+                vehicle.chi_tiet_chuyen_di.forEach(trip => {
+                    const route = Array.isArray(trip.diem_di_diem_den)
+                        ? trip.diem_di_diem_den.join(' - ')
+                        : trip.diem_di_diem_den || 'Không xác định';
+
+                    if (!routeGroups[route]) {
+                        routeGroups[route] = {
+                            temDi: [],
+                            temVe: [],
+                            theTich: []
+                        };
+                    }
+
+                    // Assume first half are "tem chiều đi", second half are "tem chiều về"
+                    const maTems = Array.isArray(trip.ma_tem) ? trip.ma_tem : [trip.ma_tem];
+                    const midPoint = Math.ceil(maTems.length / 2);
+
+                    routeGroups[route].temDi.push(...maTems.slice(0, midPoint));
+                    routeGroups[route].temVe.push(...maTems.slice(midPoint));
+
+                    if (trip.the_tich) {
+                        routeGroups[route].theTich.push(trip.the_tich);
+                    }
+                });
+
+                // Thêm dòng cho từng tuyến
+                for (const route in routeGroups) {
+                    const group = routeGroups[route];
+                    excelData.push([
+                        stt++,
+                        vehicle.ngay,
+                        vehicle.bien_so,
+                        route,
+                        group.temDi.join(', '),
+                        group.temVe.join(', '),
+                        group.theTich.join(', ')
+                    ]);
+                }
+            });
+        }
+
+        // Tạo workbook và worksheet
+        const wb = XLSX.utils.book_new();
+        const ws = XLSX.utils.aoa_to_sheet(excelData);
+
+        // Định dạng độ rộng cột
+        const colWidths = [
+            { wch: 5 },  // STT
+            { wch: 12 }, // Ngày
+            { wch: 12 }, // Biển Số
+            { wch: 30 }, // Cột 4
+            { wch: 30 }, // Cột 5
+            { wch: 30 }, // Cột 6
+            { wch: 15 }  // Cột 7
+        ];
+        ws['!cols'] = colWidths;
+
+        // Thêm worksheet vào workbook
+        XLSX.utils.book_append_sheet(wb, ws, sheetName);
+
+        // Xuất file
+        XLSX.writeFile(wb, fileName);
+
+        console.log('Đã xuất file Excel:', fileName);
+
+    } catch (error) {
+        console.error('Lỗi khi xuất Excel:', error);
+        alert('Có lỗi xảy ra khi xuất file Excel. Vui lòng thử lại.');
+    }
+}
+
 // ===== EVENT LISTENERS =====
 function initJNTEventListeners() {
     // Display type change
@@ -339,6 +526,12 @@ function initJNTEventListeners() {
             document.getElementById('jntRouteSelect').value = '';
             applyJNTFilter();
         });
+    }
+
+    // Export Excel button
+    const exportBtn = document.getElementById('jntExportExcel');
+    if (exportBtn) {
+        exportBtn.addEventListener('click', exportJNTToExcel);
     }
 }
 
