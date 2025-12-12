@@ -735,7 +735,8 @@ function applyGHNFilter() {
     console.log('[GHN FILTER] Search Lo Trinh:', searchTrip);
 
     // Filter by loai_chuyen based on display type
-    const loaiChuyenFilter = displayType === 'theo-ca' ? 'Theo ca' : 'Theo chuyến';
+    // NOTE: Backend trả về "Theo ca" và "Theo tuyến" (không phải "Theo chuyến")
+    const loaiChuyenFilter = displayType === 'theo-ca' ? 'Theo ca' : 'Theo tuyến';
     console.log('[GHN FILTER] Loai chuyen filter:', loaiChuyenFilter);
 
     // Filter data
