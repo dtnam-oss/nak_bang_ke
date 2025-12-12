@@ -938,7 +938,8 @@ body {
 }
 
 .select-dropdown,
-.date-input {
+.date-input,
+.search-input {
     padding: 12px 15px;
     border: 2px solid #e0e0e0;
     border-radius: 8px;
@@ -949,15 +950,28 @@ body {
 }
 
 .select-dropdown:hover,
-.date-input:hover {
+.date-input:hover,
+.search-input:hover {
     border-color: #667eea;
 }
 
 .select-dropdown:focus,
-.date-input:focus {
+.date-input:focus,
+.search-input:focus {
     outline: none;
     border-color: #667eea;
     box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+/* Search input specific styling */
+.search-input {
+    font-family: inherit;
+    width: 100%;
+}
+
+.search-input::placeholder {
+    color: #999;
+    font-style: italic;
 }
 
 .btn-filter,
