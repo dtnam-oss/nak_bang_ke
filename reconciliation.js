@@ -732,13 +732,11 @@ function applyGHNFilter() {
     console.log('[GHN FILTER] Display Type:', displayType);
     console.log('[GHN FILTER] Date Range:', dateFrom, 'to', dateTo);
     console.log('[GHN FILTER] Selected Plate:', selectedPlate);
-    console.log('[GHN FILTER] Search Trip:', searchTrip);
+    console.log('[GHN FILTER] Search Lo Trinh:', searchTrip);
 
-    // IMPORTANT: Backend đang trả về loai_chuyen với giá trị khác ("Khác", "Nội tỉnh/Nội vùng", "Nội thành")
-    // Không filter theo loai_chuyen, chỉ thay đổi cách hiển thị
-    const loaiChuyenFilter = null; // Show all data regardless of loai_chuyen
-    // const loaiChuyenFilter = displayType === 'theo-ca' ? 'Theo ca' : 'Theo chuyến';
-    console.log('[GHN FILTER] Display type:', displayType, '(not filtering by loai_chuyen)');
+    // Backend đã có loai_chuyen chuẩn: "Theo ca" và "Theo chuyến"
+    const loaiChuyenFilter = displayType === 'theo-ca' ? 'Theo ca' : 'Theo chuyến';
+    console.log('[GHN FILTER] Looking for loai_chuyen:', loaiChuyenFilter);
 
     // Filter data
     ghnFilteredData = [];
@@ -784,17 +782,12 @@ function applyGHNFilter() {
 
                     const vehicleData = dateData[loaiChuyen][bienSo];
 
-                    // Filter by search trip (mã chuyến)
+                    // Filter by search (lo_trinh)
                     if (searchTrip) {
-                        // Check if any trip contains the search term
+                        // Check if any trip's lo_trinh contains the search term
                         const hasMatchingTrip = vehicleData.chi_tiet_chuyen_di.some(trip => {
-                            const maChuyens = Array.isArray(trip.ma_chuyen_di_kh)
-                                ? trip.ma_chuyen_di_kh
-                                : (trip.ma_chuyen_di_kh ? [trip.ma_chuyen_di_kh] : []);
-
-                            return maChuyens.some(maChuyen =>
-                                maChuyen.toString().toLowerCase().includes(searchTrip)
-                            );
+                            const loTrinh = trip.lo_trinh || '';
+                            return loTrinh.toString().toLowerCase().includes(searchTrip);
                         });
 
                         if (!hasMatchingTrip) continue;
