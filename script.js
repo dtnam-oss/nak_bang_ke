@@ -418,11 +418,6 @@ document.addEventListener('DOMContentLoaded', () => {
     init();
     initNavigation();
 
-    // Load dữ liệu cho trang Báo cáo (mặc định khi load trang)
-    if (typeof initReportPage === 'function') {
-        initReportPage();
-    }
-
     // Refresh button handler
     const refreshBtn = document.getElementById('refreshDataBtn');
     if (refreshBtn) {
@@ -437,4 +432,12 @@ document.addEventListener('DOMContentLoaded', () => {
             }, 500);
         });
     }
+
+    // Load dữ liệu cho trang Báo cáo sau khi tất cả scripts đã load
+    // Sử dụng setTimeout để đảm bảo tất cả các file JS đã được parse
+    setTimeout(() => {
+        if (typeof initReportPage === 'function') {
+            initReportPage();
+        }
+    }, 100);
 });
