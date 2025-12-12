@@ -666,11 +666,15 @@ async function loadGHNData() {
         // Populate filters
         populateGHNFilters(data);
 
-        // Set default date to today
+        // Set default date range to today
         const today = new Date().toISOString().split('T')[0];
-        const dateSelect = document.getElementById('ghnDateSelect');
-        if (dateSelect) {
-            dateSelect.value = today;
+        const dateFromInput = document.getElementById('ghnDateFrom');
+        const dateToInput = document.getElementById('ghnDateTo');
+        if (dateFromInput) {
+            dateFromInput.value = today;
+        }
+        if (dateToInput) {
+            dateToInput.value = today;
         }
 
         // Apply initial filter
@@ -694,62 +698,75 @@ function populateGHNFilters(data) {
 
     // Extract unique values
     for (const date in data) {
-        for (const loaiTuyen in data[date]) {
-            routes.add(loaiTuyen);
-            for (const bienSo in data[date][loaiTuyen]) {
+        for (const loaiChuyen in data[date]) {
+            routes.add(loaiChuyen);
+            for (const bienSo in data[date][loaiChuyen]) {
                 plates.add(bienSo);
             }
         }
     }
 
     // Populate plate select
-    plateSelect.innerHTML = '<option value="">-- Tất cả --</option>';
-    Array.from(plates).sort().forEach(plate => {
-        const option = document.createElement('option');
-        option.value = plate;
-        option.textContent = plate;
-        plateSelect.appendChild(option);
-    });
+    if (plateSelect) {
+        plateSelect.innerHTML = '<option value="">-- Tất cả --</option>';
+        Array.from(plates).sort().forEach(plate => {
+            const option = document.createElement('option');
+            option.value = plate;
+            option.textContent = plate;
+            plateSelect.appendChild(option);
+        });
+    }
 
-    // Populate route select
-    routeSelect.innerHTML = '<option value="">-- Tất cả --</option>';
-    Array.from(routes).sort().forEach(route => {
-        const option = document.createElement('option');
-        option.value = route;
-        option.textContent = route;
-        routeSelect.appendChild(option);
-    });
+    // Populate route select (loại chuyến)
+    if (routeSelect) {
+        routeSelect.innerHTML = '<option value="">-- Tất cả --</option>';
+        Array.from(routes).sort().forEach(route => {
+            const option = document.createElement('option');
+            option.value = route;
+            option.textContent = route;
+            routeSelect.appendChild(option);
+        });
+    }
 }
 
-// Áp dụng bộ lọc GHN
+// Áp dụng bộ lọc GHN (tương tự J&T với date range)
 function applyGHNFilter() {
-    const selectedDate = document.getElementById('ghnDateSelect').value;
+    const dateFrom = document.getElementById('ghnDateFrom').value;
+    const dateTo = document.getElementById('ghnDateTo').value;
     const selectedPlate = document.getElementById('ghnPlateSelect').value;
     const selectedRoute = document.getElementById('ghnRouteSelect').value;
 
     // Filter data
     ghnFilteredData = [];
 
-    if (!selectedDate) {
+    if (!dateFrom || !dateTo) {
         showGHNNoData(true);
         return;
     }
 
-    const dateData = ghnReportData[selectedDate];
-    if (!dateData) {
-        showGHNNoData(true);
-        return;
-    }
+    // Parse dates for comparison
+    const fromDate = new Date(dateFrom);
+    const toDate = new Date(dateTo);
 
-    // Filter by route and plate
-    for (const loaiTuyen in dateData) {
-        if (selectedRoute && loaiTuyen !== selectedRoute) continue;
+    // Loop through all dates in the range
+    for (const dateKey in ghnReportData) {
+        const currentDate = new Date(dateKey);
 
-        for (const bienSo in dateData[loaiTuyen]) {
-            if (selectedPlate && bienSo !== selectedPlate) continue;
+        // Check if date is within range
+        if (currentDate >= fromDate && currentDate <= toDate) {
+            const dateData = ghnReportData[dateKey];
 
-            const vehicleData = dateData[loaiTuyen][bienSo];
-            ghnFilteredData.push(vehicleData);
+            // Filter by loai_chuyen (route) and plate
+            for (const loaiChuyen in dateData) {
+                if (selectedRoute && loaiChuyen !== selectedRoute) continue;
+
+                for (const bienSo in dateData[loaiChuyen]) {
+                    if (selectedPlate && bienSo !== selectedPlate) continue;
+
+                    const vehicleData = dateData[loaiChuyen][bienSo];
+                    ghnFilteredData.push(vehicleData);
+                }
+            }
         }
     }
 
@@ -852,8 +869,12 @@ async function exportGHNToExcel() {
     }
 
     try {
-        const selectedDate = document.getElementById('ghnDateSelect').value || 'all';
-        const fileName = `GHN_${selectedDate}.xlsx`;
+        const dateFrom = document.getElementById('ghnDateFrom').value || '';
+        const dateTo = document.getElementById('ghnDateTo').value || '';
+
+        // Format date range for filename
+        const dateRangeStr = dateFrom === dateTo ? dateFrom : `${dateFrom}_to_${dateTo}`;
+        const fileName = `GHN_${dateRangeStr}.xlsx`;
 
         // Tạo workbook mới
         const workbook = new ExcelJS.Workbook();
@@ -954,7 +975,10 @@ function initGHNEventListeners() {
     const resetBtn = document.getElementById('ghnResetFilter');
     if (resetBtn) {
         resetBtn.addEventListener('click', () => {
-            document.getElementById('ghnDateSelect').value = new Date().toISOString().split('T')[0];
+            // Reset date range to today
+            const today = new Date().toISOString().split('T')[0];
+            document.getElementById('ghnDateFrom').value = today;
+            document.getElementById('ghnDateTo').value = today;
             document.getElementById('ghnPlateSelect').value = '';
             document.getElementById('ghnRouteSelect').value = '';
             applyGHNFilter();
