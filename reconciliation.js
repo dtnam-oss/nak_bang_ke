@@ -729,13 +729,20 @@ function applyGHNFilter() {
 
     ghnCurrentDisplayType = displayType;
 
+    console.log('[GHN FILTER] Display Type:', displayType);
+    console.log('[GHN FILTER] Date Range:', dateFrom, 'to', dateTo);
+    console.log('[GHN FILTER] Selected Plate:', selectedPlate);
+    console.log('[GHN FILTER] Search Trip:', searchTrip);
+
     // Determine loai_chuyen value based on display type
     const loaiChuyenFilter = displayType === 'theo-ca' ? 'Theo ca' : 'Theo chuyến';
+    console.log('[GHN FILTER] Looking for loai_chuyen:', loaiChuyenFilter);
 
     // Filter data
     ghnFilteredData = [];
 
     if (!dateFrom || !dateTo) {
+        console.warn('[GHN FILTER] Missing date range');
         showGHNNoData(true);
         return;
     }
@@ -743,6 +750,12 @@ function applyGHNFilter() {
     // Parse dates for comparison
     const fromDate = new Date(dateFrom);
     const toDate = new Date(dateTo);
+
+    // Debug: log available data structure
+    console.log('[GHN FILTER] Available dates in data:', Object.keys(ghnReportData));
+    for (const dateKey in ghnReportData) {
+        console.log(`[GHN FILTER] Date ${dateKey} has loai_chuyen:`, Object.keys(ghnReportData[dateKey]));
+    }
 
     // Loop through all dates in the range
     for (const dateKey in ghnReportData) {
@@ -754,8 +767,15 @@ function applyGHNFilter() {
 
             // Filter by loai_chuyen (based on display type)
             for (const loaiChuyen in dateData) {
+                console.log(`[GHN FILTER] Checking loai_chuyen: "${loaiChuyen}" vs "${loaiChuyenFilter}"`);
+
                 // Only include data matching the selected loai_chuyen
-                if (loaiChuyen !== loaiChuyenFilter) continue;
+                if (loaiChuyen !== loaiChuyenFilter) {
+                    console.log(`[GHN FILTER] Skipping loai_chuyen: "${loaiChuyen}"`);
+                    continue;
+                }
+
+                console.log(`[GHN FILTER] Matched loai_chuyen: "${loaiChuyen}"`);
 
                 for (const bienSo in dateData[loaiChuyen]) {
                     if (selectedPlate && bienSo !== selectedPlate) continue;
@@ -783,6 +803,8 @@ function applyGHNFilter() {
             }
         }
     }
+
+    console.log('[GHN FILTER] Filtered data count:', ghnFilteredData.length);
 
     // Display data
     displayGHNData(ghnFilteredData);
