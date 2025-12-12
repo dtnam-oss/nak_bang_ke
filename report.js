@@ -7,6 +7,14 @@ let charts = {
     revenueByCustomerRoute: null
 };
 
+// Register Chart.js datalabels plugin
+if (typeof Chart !== 'undefined' && typeof ChartDataLabels !== 'undefined') {
+    Chart.register(ChartDataLabels);
+    console.log('[REPORT] Chart.js datalabels plugin registered');
+} else {
+    console.warn('[REPORT] Chart.js or ChartDataLabels not loaded yet');
+}
+
 // Fetch report data from Google Apps Script
 async function fetchReportData() {
     console.log('[REPORT] fetchReportData() called');
@@ -49,6 +57,12 @@ async function fetchReportData() {
 async function initReportPage() {
     console.log('[REPORT] initReportPage() called');
 
+    // Check if baoCaoSection exists and is visible
+    const baoCaoSection = document.getElementById('baoCaoSection');
+    console.log('[REPORT] baoCaoSection element:', baoCaoSection);
+    console.log('[REPORT] baoCaoSection display:', baoCaoSection ? window.getComputedStyle(baoCaoSection).display : 'N/A');
+    console.log('[REPORT] baoCaoSection visibility:', baoCaoSection ? window.getComputedStyle(baoCaoSection).visibility : 'N/A');
+
     try {
         console.log('[REPORT] Starting fetchReportData...');
         await fetchReportData();
@@ -64,7 +78,6 @@ async function initReportPage() {
     } catch (error) {
         console.error('[REPORT] Error initializing report page:', error);
         // Hiển thị thông báo lỗi cho người dùng
-        const baoCaoSection = document.getElementById('baoCaoSection');
         if (baoCaoSection) {
             baoCaoSection.innerHTML = `
                 <div style="padding: 40px; text-align: center;">
@@ -191,15 +204,31 @@ function updateReportView() {
 
 // Update overview cards
 function updateOverviewCards() {
+    console.log('[REPORT] updateOverviewCards() called');
+
     const totalRevenue = currentReportData.reduce((sum, item) => sum + (item.tong_doanh_thu || 0), 0);
     const totalTrips = currentReportData.reduce((sum, item) => sum + (item.so_luong_chuyen_di || 0), 0);
     const totalNak = currentReportData.reduce((sum, item) => sum + (item.so_xe_nak || 0), 0);
     const totalVendor = currentReportData.reduce((sum, item) => sum + (item.so_xe_vendor || 0), 0);
 
-    document.getElementById('totalRevenue').textContent = formatCurrency(totalRevenue);
-    document.getElementById('totalTrips').textContent = totalTrips.toLocaleString('vi-VN');
-    document.getElementById('totalNakVehicles').textContent = totalNak;
-    document.getElementById('totalVendorVehicles').textContent = totalVendor;
+    console.log('[REPORT] Calculated totals:', { totalRevenue, totalTrips, totalNak, totalVendor });
+
+    const revenueEl = document.getElementById('totalRevenue');
+    const tripsEl = document.getElementById('totalTrips');
+    const nakEl = document.getElementById('totalNakVehicles');
+    const vendorEl = document.getElementById('totalVendorVehicles');
+
+    console.log('[REPORT] Card elements found:', {
+        revenue: !!revenueEl,
+        trips: !!tripsEl,
+        nak: !!nakEl,
+        vendor: !!vendorEl
+    });
+
+    if (revenueEl) revenueEl.textContent = formatCurrency(totalRevenue);
+    if (tripsEl) tripsEl.textContent = totalTrips.toLocaleString('vi-VN');
+    if (nakEl) nakEl.textContent = totalNak;
+    if (vendorEl) vendorEl.textContent = totalVendor;
 }
 
 // Update charts
@@ -211,7 +240,16 @@ function updateCharts() {
 
 // Update revenue by date chart
 function updateRevenueByDateChart() {
-    const ctx = document.getElementById('revenueByDateChart').getContext('2d');
+    console.log('[REPORT] updateRevenueByDateChart() called');
+    const canvas = document.getElementById('revenueByDateChart');
+    console.log('[REPORT] revenueByDateChart canvas:', canvas);
+
+    if (!canvas) {
+        console.error('[REPORT] Canvas element revenueByDateChart not found!');
+        return;
+    }
+
+    const ctx = canvas.getContext('2d');
 
     // Prepare data
     const sortedData = [...currentReportData].sort((a, b) => {
