@@ -43,6 +43,13 @@ function initDOMElements() {
 // Initialize the page
 async function init() {
     initDOMElements();
+
+    // Chỉ khởi tạo nếu đang ở trang có bảng dữ liệu cũ
+    // Trang mới (Báo cáo, Đối soát, Phương tiện) có init riêng
+    if (!tableBody) {
+        return; // Không có table body, thoát khỏi init
+    }
+
     if (fromDateInput && toDateInput) {
         setDefaultDates();
     }
