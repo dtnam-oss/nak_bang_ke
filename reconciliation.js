@@ -734,10 +734,11 @@ function applyGHNFilter() {
     console.log('[GHN FILTER] Selected Plate:', selectedPlate);
     console.log('[GHN FILTER] Search Trip:', searchTrip);
 
-    // IMPORTANT: Nếu backend chưa phân biệt loai_chuyen, comment dòng dưới và uncomment dòng sau
-    // const loaiChuyenFilter = null; // Show all data regardless of loai_chuyen
-    const loaiChuyenFilter = displayType === 'theo-ca' ? 'Theo ca' : 'Theo chuyến';
-    console.log('[GHN FILTER] Looking for loai_chuyen:', loaiChuyenFilter);
+    // IMPORTANT: Backend đang trả về loai_chuyen với giá trị khác ("Khác", "Nội tỉnh/Nội vùng", "Nội thành")
+    // Không filter theo loai_chuyen, chỉ thay đổi cách hiển thị
+    const loaiChuyenFilter = null; // Show all data regardless of loai_chuyen
+    // const loaiChuyenFilter = displayType === 'theo-ca' ? 'Theo ca' : 'Theo chuyến';
+    console.log('[GHN FILTER] Display type:', displayType, '(not filtering by loai_chuyen)');
 
     // Filter data
     ghnFilteredData = [];
