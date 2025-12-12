@@ -734,7 +734,8 @@ function applyGHNFilter() {
     console.log('[GHN FILTER] Selected Plate:', selectedPlate);
     console.log('[GHN FILTER] Search Trip:', searchTrip);
 
-    // Determine loai_chuyen value based on display type
+    // IMPORTANT: Nếu backend chưa phân biệt loai_chuyen, comment dòng dưới và uncomment dòng sau
+    // const loaiChuyenFilter = null; // Show all data regardless of loai_chuyen
     const loaiChuyenFilter = displayType === 'theo-ca' ? 'Theo ca' : 'Theo chuyến';
     console.log('[GHN FILTER] Looking for loai_chuyen:', loaiChuyenFilter);
 
@@ -769,8 +770,8 @@ function applyGHNFilter() {
             for (const loaiChuyen in dateData) {
                 console.log(`[GHN FILTER] Checking loai_chuyen: "${loaiChuyen}" vs "${loaiChuyenFilter}"`);
 
-                // Only include data matching the selected loai_chuyen
-                if (loaiChuyen !== loaiChuyenFilter) {
+                // Only include data matching the selected loai_chuyen (if filter is set)
+                if (loaiChuyenFilter && loaiChuyen !== loaiChuyenFilter) {
                     console.log(`[GHN FILTER] Skipping loai_chuyen: "${loaiChuyen}"`);
                     continue;
                 }
