@@ -453,6 +453,21 @@ document.addEventListener('DOMContentLoaded', () => {
                     const result = await triggerCreateReports();
                     console.log('[SCRIPT] Reports created:', result);
                     alert(`Tạo báo cáo thành công!\n\nJ&T: ${result.jnt.stats.totalDays || 0} ngày, ${result.jnt.stats.rowsWritten || 0} dòng\nGHN: ${result.ghn.stats.totalDays || 0} ngày, ${result.ghn.stats.rowsWritten || 0} dòng`);
+
+                    // Tự động load lại dữ liệu nếu đang ở trang Đối soát
+                    const activeLink = document.querySelector('.nav-links a.active');
+                    const activePage = activeLink ? activeLink.getAttribute('data-page') : null;
+
+                    if (activePage === 'doi-soat') {
+                        console.log('[SCRIPT] Auto-refreshing Đối soát data after report generation...');
+                        if (typeof loadJNTData === 'function') {
+                            await loadJNTData();
+                        }
+                        if (typeof loadGHNData === 'function') {
+                            await loadGHNData();
+                        }
+                        console.log('[SCRIPT] Auto-refresh completed');
+                    }
                 } else {
                     console.error('[SCRIPT] triggerCreateReports function not found');
                     alert('Lỗi: Không tìm thấy function triggerCreateReports');

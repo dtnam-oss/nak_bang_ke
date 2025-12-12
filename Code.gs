@@ -27,32 +27,20 @@ function doGet(e) {
       .setMimeType(ContentService.MimeType.JSON);
   }
 
-  // Nếu có parameter 'action=getJNTReportData', trả về JSON data từ báo cáo J&T
+  // Nếu có parameter 'action=getJNTReportData', trả về JSON data từ báo cáo J&T (đọc từ sheet, không regenerate)
   if (e.parameter.action === 'getJNTReportData') {
-    var result = createJNTReport('chi_tiet_chuyen_di', 'bao_cao_jnt_tuyen_nhanh');
-    if (result.success) {
-      return ContentService
-        .createTextOutput(JSON.stringify(result.data))
-        .setMimeType(ContentService.MimeType.JSON);
-    } else {
-      return ContentService
-        .createTextOutput(JSON.stringify({}))
-        .setMimeType(ContentService.MimeType.JSON);
-    }
+    var data = getJNTReportDataFromSheet();
+    return ContentService
+      .createTextOutput(JSON.stringify(data))
+      .setMimeType(ContentService.MimeType.JSON);
   }
 
-  // Nếu có parameter 'action=getGHNReportData', trả về JSON data từ báo cáo GHN
+  // Nếu có parameter 'action=getGHNReportData', trả về JSON data từ báo cáo GHN (đọc từ sheet, không regenerate)
   if (e.parameter.action === 'getGHNReportData') {
-    var result = createGHNReport('chi_tiet_chuyen_di', 'bao_cao_ghn');
-    if (result.success) {
-      return ContentService
-        .createTextOutput(JSON.stringify(result.data))
-        .setMimeType(ContentService.MimeType.JSON);
-    } else {
-      return ContentService
-        .createTextOutput(JSON.stringify({}))
-        .setMimeType(ContentService.MimeType.JSON);
-    }
+    var data = getGHNReportDataFromSheet();
+    return ContentService
+      .createTextOutput(JSON.stringify(data))
+      .setMimeType(ContentService.MimeType.JSON);
   }
 
   // Nếu có parameter 'action=triggerJNTReport', chạy createJNTReport và trả về status
@@ -308,6 +296,184 @@ function getVehicleDataFromSheet() {
   } catch (error) {
     Logger.log('Error getting vehicle data from sheet: ' + error);
     return [];
+  }
+}
+
+// Hàm đọc dữ liệu báo cáo GHN từ sheet bao_cao_ghn (không regenerate)
+function getGHNReportDataFromSheet() {
+  try {
+    var spreadsheet = SpreadsheetApp.openById('18pS9YMZSwZCVBt_anIGn3GN4qFoPpMtALQm4YvMDd-g');
+    var sheet = spreadsheet.getSheetByName('bao_cao_ghn');
+
+    if (!sheet) {
+      Logger.log('Sheet bao_cao_ghn not found');
+      return {};
+    }
+
+    var data = sheet.getDataRange().getValues();
+
+    if (data.length <= 1) {
+      Logger.log('No data in bao_cao_ghn sheet');
+      return {};
+    }
+
+    var headers = data[0];
+
+    // Tìm column indexes
+    var colIndexes = {};
+    for (var i = 0; i < headers.length; i++) {
+      colIndexes[headers[i]] = i;
+    }
+
+    // Rebuild nested structure: {date: {loai_chuyen: {bien_so: vehicleData}}}
+    var reportData = {};
+
+    for (var i = 1; i < data.length; i++) {
+      var row = data[i];
+
+      var ngay = row[colIndexes['ngay']];
+      var loaiChuyen = row[colIndexes['loai_chuyen']];
+      var bienSo = row[colIndexes['bien_so']];
+      var chiTietChuyenDi = row[colIndexes['chi_tiet_chuyen_di']];
+      var tongChuyen = row[colIndexes['tong_chuyen']];
+      var tongQuangDuong = row[colIndexes['tong_quang_duong']];
+      var tongTaiTrong = row[colIndexes['tong_tai_trong']];
+
+      // Format date
+      var formattedDate;
+      if (ngay instanceof Date) {
+        var day = String(ngay.getDate()).padStart(2, '0');
+        var month = String(ngay.getMonth() + 1).padStart(2, '0');
+        var year = ngay.getFullYear();
+        formattedDate = year + '-' + month + '-' + day;
+      } else {
+        formattedDate = ngay;
+      }
+
+      // Parse chi_tiet_chuyen_di JSON
+      var parsedChiTiet = [];
+      if (typeof chiTietChuyenDi === 'string') {
+        try {
+          parsedChiTiet = JSON.parse(chiTietChuyenDi);
+        } catch (e) {
+          Logger.log('Error parsing chi_tiet_chuyen_di: ' + e);
+          parsedChiTiet = [];
+        }
+      }
+
+      // Build nested structure
+      if (!reportData[formattedDate]) {
+        reportData[formattedDate] = {};
+      }
+      if (!reportData[formattedDate][loaiChuyen]) {
+        reportData[formattedDate][loaiChuyen] = {};
+      }
+
+      reportData[formattedDate][loaiChuyen][bienSo] = {
+        ngay: formattedDate,
+        loai_chuyen: loaiChuyen,
+        bien_so: bienSo,
+        chi_tiet_chuyen_di: parsedChiTiet,
+        tong_chuyen: tongChuyen,
+        tong_quang_duong: tongQuangDuong,
+        tong_tai_trong: tongTaiTrong
+      };
+    }
+
+    return reportData;
+
+  } catch (error) {
+    Logger.log('Error getting GHN report data from sheet: ' + error);
+    return {};
+  }
+}
+
+// Hàm đọc dữ liệu báo cáo J&T từ sheet bao_cao_jnt_tuyen_nhanh (không regenerate)
+function getJNTReportDataFromSheet() {
+  try {
+    var spreadsheet = SpreadsheetApp.openById('18pS9YMZSwZCVBt_anIGn3GN4qFoPpMtALQm4YvMDd-g');
+    var sheet = spreadsheet.getSheetByName('bao_cao_jnt_tuyen_nhanh');
+
+    if (!sheet) {
+      Logger.log('Sheet bao_cao_jnt_tuyen_nhanh not found');
+      return {};
+    }
+
+    var data = sheet.getDataRange().getValues();
+
+    if (data.length <= 1) {
+      Logger.log('No data in bao_cao_jnt_tuyen_nhanh sheet');
+      return {};
+    }
+
+    var headers = data[0];
+
+    // Tìm column indexes
+    var colIndexes = {};
+    for (var i = 0; i < headers.length; i++) {
+      colIndexes[headers[i]] = i;
+    }
+
+    // Rebuild nested structure: {date: {loai_tuyen_khach_hang: {bien_so: vehicleData}}}
+    var reportData = {};
+
+    for (var i = 1; i < data.length; i++) {
+      var row = data[i];
+
+      var ngay = row[colIndexes['ngay']];
+      var loaiTuyenKhachHang = row[colIndexes['loai_tuyen_khach_hang']];
+      var bienSo = row[colIndexes['bien_so']];
+      var chiTietChuyenDi = row[colIndexes['chi_tiet_chuyen_di']];
+      var tongChuyen = row[colIndexes['tong_chuyen']];
+      var tongQuangDuong = row[colIndexes['tong_quang_duong']];
+      var tongTaiTrong = row[colIndexes['tong_tai_trong']];
+
+      // Format date
+      var formattedDate;
+      if (ngay instanceof Date) {
+        var day = String(ngay.getDate()).padStart(2, '0');
+        var month = String(ngay.getMonth() + 1).padStart(2, '0');
+        var year = ngay.getFullYear();
+        formattedDate = year + '-' + month + '-' + day;
+      } else {
+        formattedDate = ngay;
+      }
+
+      // Parse chi_tiet_chuyen_di JSON
+      var parsedChiTiet = [];
+      if (typeof chiTietChuyenDi === 'string') {
+        try {
+          parsedChiTiet = JSON.parse(chiTietChuyenDi);
+        } catch (e) {
+          Logger.log('Error parsing chi_tiet_chuyen_di: ' + e);
+          parsedChiTiet = [];
+        }
+      }
+
+      // Build nested structure
+      if (!reportData[formattedDate]) {
+        reportData[formattedDate] = {};
+      }
+      if (!reportData[formattedDate][loaiTuyenKhachHang]) {
+        reportData[formattedDate][loaiTuyenKhachHang] = {};
+      }
+
+      reportData[formattedDate][loaiTuyenKhachHang][bienSo] = {
+        ngay: formattedDate,
+        loai_tuyen_khach_hang: loaiTuyenKhachHang,
+        bien_so: bienSo,
+        chi_tiet_chuyen_di: parsedChiTiet,
+        tong_chuyen: tongChuyen,
+        tong_quang_duong: tongQuangDuong,
+        tong_tai_trong: tongTaiTrong
+      };
+    }
+
+    return reportData;
+
+  } catch (error) {
+    Logger.log('Error getting JNT report data from sheet: ' + error);
+    return {};
   }
 }
 
