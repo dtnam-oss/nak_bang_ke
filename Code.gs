@@ -1058,7 +1058,7 @@ function createGHNReport(sheetNameSource, sheetNameTarget) {
     var colIndexes = findColumnIndexes(headers, [
       'ngay_chuyen_di',
       'bien_kiem_soat',
-      'loai_tuyen_khach_hang',
+      'loai_chuyen',
       'tai_trong_tinh_phi',
       'hinh_thuc_tinh_gia',
       'lo_trinh',
@@ -1066,11 +1066,12 @@ function createGHNReport(sheetNameSource, sheetNameTarget) {
       'quang_duong',
       'don_gia',
       'ma_chuyen_di_kh',
-      'ma_khach_hang'
+      'ma_khach_hang',
+      'ten_khach_hang_cap_1'
     ]);
 
     // Kiểm tra các cột bắt buộc
-    var requiredCols = ['ngay_chuyen_di', 'bien_kiem_soat', 'loai_tuyen_khach_hang'];
+    var requiredCols = ['ngay_chuyen_di', 'bien_kiem_soat', 'loai_chuyen'];
     var missingCols = [];
     for (var i = 0; i < requiredCols.length; i++) {
       if (colIndexes[requiredCols[i]] === -1) {
@@ -1131,7 +1132,7 @@ function createGHNReport(sheetNameSource, sheetNameTarget) {
  * Xây dựng Nested JSON Object từ dữ liệu cho báo cáo GHN
  * @param {Array} data - Dữ liệu từ sheet
  * @param {Object} colIndexes - Index của các cột
- * @return {Object} Nested object: {date: {loai_tuyen_khach_hang: {bien_so: {chi_tiet}}}}
+ * @return {Object} Nested object: {date: {loai_chuyen: {bien_so: {chi_tiet}}}}
  */
 function buildGHNReportData(data, colIndexes) {
   var reportData = {};
@@ -1143,7 +1144,7 @@ function buildGHNReportData(data, colIndexes) {
     // Lấy giá trị các cột key chính
     var ngayChuyen = row[colIndexes.ngay_chuyen_di];
     var bienSo = row[colIndexes.bien_kiem_soat];
-    var loaiTuyenKhachHang = row[colIndexes.loai_tuyen_khach_hang];
+    var loaiChuyen = row[colIndexes.loai_chuyen];
 
     // Lấy giá trị chi tiết chuyến đi
     var taiTrong = colIndexes.tai_trong_tinh_phi !== -1 ? row[colIndexes.tai_trong_tinh_phi] : '';
@@ -1154,6 +1155,7 @@ function buildGHNReportData(data, colIndexes) {
     var donGia = colIndexes.don_gia !== -1 ? row[colIndexes.don_gia] : '';
     var maChuyen = colIndexes.ma_chuyen_di_kh !== -1 ? row[colIndexes.ma_chuyen_di_kh] : '';
     var maKhachHang = colIndexes.ma_khach_hang !== -1 ? row[colIndexes.ma_khach_hang] : '';
+    var tenKhachHangCap1 = colIndexes.ten_khach_hang_cap_1 !== -1 ? row[colIndexes.ten_khach_hang_cap_1] : '';
 
     // Bỏ qua dòng không có ngày hoặc biển số
     if (!ngayChuyen || !bienSo) {
@@ -1171,25 +1173,25 @@ function buildGHNReportData(data, colIndexes) {
     // Format biển số (trim whitespace)
     var bienSoKey = bienSo.toString().trim();
 
-    // Format loại tuyến khách hàng (trim, nếu rỗng thì dùng "Khác")
-    var loaiTuyenKey = (loaiTuyenKhachHang && loaiTuyenKhachHang.toString().trim()) || 'Khác';
+    // Format loại chuyến (trim, nếu rỗng thì dùng "Khác")
+    var loaiChuyenKey = (loaiChuyen && loaiChuyen.toString().trim()) || 'Khác';
 
     // Khởi tạo object cho ngày nếu chưa có
     if (!reportData[dateKey]) {
       reportData[dateKey] = {};
     }
 
-    // Khởi tạo object cho loại tuyến nếu chưa có
-    if (!reportData[dateKey][loaiTuyenKey]) {
-      reportData[dateKey][loaiTuyenKey] = {};
+    // Khởi tạo object cho loại chuyến nếu chưa có
+    if (!reportData[dateKey][loaiChuyenKey]) {
+      reportData[dateKey][loaiChuyenKey] = {};
     }
 
     // Khởi tạo object cho xe nếu chưa có
-    if (!reportData[dateKey][loaiTuyenKey][bienSoKey]) {
-      reportData[dateKey][loaiTuyenKey][bienSoKey] = {
+    if (!reportData[dateKey][loaiChuyenKey][bienSoKey]) {
+      reportData[dateKey][loaiChuyenKey][bienSoKey] = {
         bien_so: bienSoKey,
         ngay: dateKey,
-        loai_tuyen_khach_hang: loaiTuyenKey,
+        loai_chuyen: loaiChuyenKey,
         chi_tiet_chuyen_di: [],
         tong_chuyen: 0,
         tong_quang_duong: 0,
@@ -1204,36 +1206,37 @@ function buildGHNReportData(data, colIndexes) {
     var maChuyens = parseMultipleValues(maChuyen);
 
     // Thêm chi tiết chuyến đi
-    reportData[dateKey][loaiTuyenKey][bienSoKey].chi_tiet_chuyen_di.push({
+    reportData[dateKey][loaiChuyenKey][bienSoKey].chi_tiet_chuyen_di.push({
       tai_trong_tinh_phi: taiTrong || '',
       hinh_thuc_tinh_gia: hinhThucTinhGia || '',
       lo_trinh: loTrinh || '',
       lo_trinh_chi_tiet_theo_diem: loTrinhChiTietParsed,
       quang_duong: quangDuong || '',
       don_gia: donGia || '',
-      ma_chuyen_di_kh: maChuyens
+      ma_chuyen_di_kh: maChuyens,
+      ten_khach_hang_cap_1: tenKhachHangCap1 || ''
     });
 
     // Cập nhật tổng số chuyến
-    reportData[dateKey][loaiTuyenKey][bienSoKey].tong_chuyen += 1;
+    reportData[dateKey][loaiChuyenKey][bienSoKey].tong_chuyen += 1;
 
     // Cập nhật tổng quãng đường (nếu là số)
     if (typeof quangDuong === 'number') {
-      reportData[dateKey][loaiTuyenKey][bienSoKey].tong_quang_duong += quangDuong;
+      reportData[dateKey][loaiChuyenKey][bienSoKey].tong_quang_duong += quangDuong;
     } else if (typeof quangDuong === 'string' && quangDuong) {
       var numValue = parseFloat(quangDuong.replace(/[^\d.-]/g, ''));
       if (!isNaN(numValue)) {
-        reportData[dateKey][loaiTuyenKey][bienSoKey].tong_quang_duong += numValue;
+        reportData[dateKey][loaiChuyenKey][bienSoKey].tong_quang_duong += numValue;
       }
     }
 
     // Cập nhật tổng tải trọng (nếu là số)
     if (typeof taiTrong === 'number') {
-      reportData[dateKey][loaiTuyenKey][bienSoKey].tong_tai_trong += taiTrong;
+      reportData[dateKey][loaiChuyenKey][bienSoKey].tong_tai_trong += taiTrong;
     } else if (typeof taiTrong === 'string' && taiTrong) {
       var numValue = parseFloat(taiTrong.replace(/[^\d.-]/g, ''));
       if (!isNaN(numValue)) {
-        reportData[dateKey][loaiTuyenKey][bienSoKey].tong_tai_trong += numValue;
+        reportData[dateKey][loaiChuyenKey][bienSoKey].tong_tai_trong += numValue;
       }
     }
   }
@@ -1264,7 +1267,7 @@ function writeGHNReportToSheet(reportData, targetSheetName) {
     // Tạo header
     var headers = [
       'ngay',
-      'loai_tuyen_khach_hang',
+      'loai_chuyen',
       'bien_so',
       'chi_tiet_chuyen_di',
       'tong_chuyen',
@@ -1280,13 +1283,13 @@ function writeGHNReportToSheet(reportData, targetSheetName) {
     var rowsToWrite = [];
 
     for (var date in reportData) {
-      for (var loaiTuyen in reportData[date]) {
-        for (var bienSo in reportData[date][loaiTuyen]) {
-          var vehicleData = reportData[date][loaiTuyen][bienSo];
+      for (var loaiChuyen in reportData[date]) {
+        for (var bienSo in reportData[date][loaiChuyen]) {
+          var vehicleData = reportData[date][loaiChuyen][bienSo];
 
           rowsToWrite.push([
             vehicleData.ngay,
-            vehicleData.loai_tuyen_khach_hang,
+            vehicleData.loai_chuyen,
             vehicleData.bien_so,
             JSON.stringify(vehicleData.chi_tiet_chuyen_di),
             vehicleData.tong_chuyen,
