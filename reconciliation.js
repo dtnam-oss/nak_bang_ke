@@ -978,10 +978,14 @@ document.addEventListener('DOMContentLoaded', () => {
     // Dữ liệu sẽ được load khi người dùng chuyển sang menu "Đối soát"
 });
 
-// Export function để script.js có thể gọi khi chuyển menu
+// Export functions để script.js có thể gọi
 window.initReconciliationPage = function() {
     // Load J&T data khi mở trang Đối soát lần đầu
     if (!jntReportData || Object.keys(jntReportData).length === 0) {
         loadJNTData();
     }
 };
+
+// Export loadJNTData và loadGHNData để refresh button có thể gọi
+window.loadJNTData = loadJNTData;
+window.loadGHNData = loadGHNData;

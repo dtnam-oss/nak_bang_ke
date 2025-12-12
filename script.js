@@ -427,18 +427,68 @@ document.addEventListener('DOMContentLoaded', () => {
     init();
     initNavigation();
 
-    // Refresh button handler
+    // Refresh button handler - load dữ liệu theo trang đang active
     const refreshBtn = document.getElementById('refreshDataBtn');
     if (refreshBtn) {
-        refreshBtn.addEventListener('click', () => {
-            // Add rotation animation
-            refreshBtn.style.pointerEvents = 'none';
-            refreshBtn.querySelector('svg').style.animation = 'spin 1s linear';
+        refreshBtn.addEventListener('click', async () => {
+            console.log('[SCRIPT] Refresh button clicked');
 
-            // Reload the page to fetch fresh data
-            setTimeout(() => {
-                location.reload();
-            }, 500);
+            // Add rotation animation
+            refreshBtn.disabled = true;
+            refreshBtn.style.pointerEvents = 'none';
+            const svg = refreshBtn.querySelector('svg');
+            svg.style.animation = 'spin 1s linear infinite';
+
+            try {
+                // Xác định trang đang active
+                const activeLink = document.querySelector('.nav-links a.active');
+                const activePage = activeLink ? activeLink.getAttribute('data-page') : null;
+
+                console.log('[SCRIPT] Active page:', activePage);
+
+                // Load dữ liệu theo trang
+                switch(activePage) {
+                    case 'bao-cao':
+                        console.log('[SCRIPT] Refreshing Báo cáo data...');
+                        if (typeof initReportPage === 'function') {
+                            await initReportPage();
+                        }
+                        break;
+
+                    case 'doi-soat':
+                        console.log('[SCRIPT] Refreshing Đối soát data (J&T & GHN)...');
+                        if (typeof loadJNTData === 'function') {
+                            await loadJNTData();
+                        }
+                        if (typeof loadGHNData === 'function') {
+                            await loadGHNData();
+                        }
+                        break;
+
+                    case 'phuong-tien':
+                        console.log('[SCRIPT] Refreshing Phương tiện data...');
+                        if (typeof initVehiclePage === 'function') {
+                            await initVehiclePage();
+                        }
+                        break;
+
+                    case 'nhien-lieu':
+                        console.log('[SCRIPT] Nhiên liệu page not implemented yet');
+                        break;
+
+                    default:
+                        console.warn('[SCRIPT] Unknown active page:', activePage);
+                }
+
+                console.log('[SCRIPT] Refresh completed');
+            } catch (error) {
+                console.error('[SCRIPT] Error refreshing data:', error);
+            } finally {
+                // Reset button state
+                svg.style.animation = '';
+                refreshBtn.disabled = false;
+                refreshBtn.style.pointerEvents = '';
+            }
         });
     }
 

@@ -301,3 +301,6 @@ function initPopup() {
         }
     });
 }
+
+// Export initVehiclePage để script.js có thể gọi khi chuyển menu và refresh
+window.initVehiclePage = initVehiclePage;
