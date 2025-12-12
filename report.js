@@ -36,9 +36,24 @@ async function fetchReportData() {
 
 // Initialize report page
 async function initReportPage() {
-    await fetchReportData();
-    initReportFilters();
-    filterReportByMonth(); // Default filter: Tháng này
+    try {
+        await fetchReportData();
+        initReportFilters();
+        filterReportByMonth(); // Default filter: Tháng này
+    } catch (error) {
+        console.error('Error initializing report page:', error);
+        // Hiển thị thông báo lỗi cho người dùng
+        const baoCaoSection = document.getElementById('baoCaoSection');
+        if (baoCaoSection) {
+            baoCaoSection.innerHTML = `
+                <div style="padding: 40px; text-align: center;">
+                    <h3 style="color: #e74c3c;">Không thể tải dữ liệu báo cáo</h3>
+                    <p>Vui lòng thử lại sau hoặc liên hệ quản trị viên.</p>
+                    <p style="color: #7f8c8d; font-size: 0.9em;">Lỗi: ${error.message}</p>
+                </div>
+            `;
+        }
+    }
 }
 
 // Initialize report filters
