@@ -55,6 +55,52 @@ function doGet(e) {
     }
   }
 
+  // Nếu có parameter 'action=triggerJNTReport', chạy createJNTReport và trả về status
+  if (e.parameter.action === 'triggerJNTReport') {
+    var result = createJNTReport('chi_tiet_chuyen_di', 'bao_cao_jnt_tuyen_nhanh');
+    return ContentService
+      .createTextOutput(JSON.stringify({
+        success: result.success,
+        message: result.message,
+        stats: result.stats || {}
+      }))
+      .setMimeType(ContentService.MimeType.JSON);
+  }
+
+  // Nếu có parameter 'action=triggerGHNReport', chạy createGHNReport và trả về status
+  if (e.parameter.action === 'triggerGHNReport') {
+    var result = createGHNReport('chi_tiet_chuyen_di', 'bao_cao_ghn');
+    return ContentService
+      .createTextOutput(JSON.stringify({
+        success: result.success,
+        message: result.message,
+        stats: result.stats || {}
+      }))
+      .setMimeType(ContentService.MimeType.JSON);
+  }
+
+  // Nếu có parameter 'action=triggerAllReports', chạy cả 2 reports
+  if (e.parameter.action === 'triggerAllReports') {
+    var jntResult = createJNTReport('chi_tiet_chuyen_di', 'bao_cao_jnt_tuyen_nhanh');
+    var ghnResult = createGHNReport('chi_tiet_chuyen_di', 'bao_cao_ghn');
+
+    return ContentService
+      .createTextOutput(JSON.stringify({
+        success: jntResult.success && ghnResult.success,
+        jnt: {
+          success: jntResult.success,
+          message: jntResult.message,
+          stats: jntResult.stats || {}
+        },
+        ghn: {
+          success: ghnResult.success,
+          message: ghnResult.message,
+          stats: ghnResult.stats || {}
+        }
+      }))
+      .setMimeType(ContentService.MimeType.JSON);
+  }
+
   // Nếu không có parameter, trả về HTML page
   var template = HtmlService.createTemplateFromFile('Index');
   return template

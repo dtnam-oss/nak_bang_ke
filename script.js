@@ -427,6 +427,48 @@ document.addEventListener('DOMContentLoaded', () => {
     init();
     initNavigation();
 
+    // Generate Reports button handler - trigger createJNTReport và createGHNReport
+    const generateBtn = document.getElementById('generateReportsBtn');
+    if (generateBtn) {
+        generateBtn.addEventListener('click', async () => {
+            console.log('[SCRIPT] Generate Reports button clicked');
+
+            // Confirm action
+            const confirmed = confirm('Tạo báo cáo J&T và GHN từ dữ liệu gốc?\n\nQuá trình này có thể mất vài phút và sẽ ghi đè dữ liệu báo cáo hiện tại.');
+            if (!confirmed) {
+                console.log('[SCRIPT] Generate reports cancelled by user');
+                return;
+            }
+
+            // Add rotation animation
+            generateBtn.disabled = true;
+            generateBtn.style.pointerEvents = 'none';
+            const svg = generateBtn.querySelector('svg');
+            svg.style.animation = 'spin 1s linear infinite';
+
+            try {
+                console.log('[SCRIPT] Triggering report creation...');
+
+                if (typeof triggerCreateReports === 'function') {
+                    const result = await triggerCreateReports();
+                    console.log('[SCRIPT] Reports created:', result);
+                    alert(`Tạo báo cáo thành công!\n\nJ&T: ${result.jnt.stats.totalDays || 0} ngày, ${result.jnt.stats.rowsWritten || 0} dòng\nGHN: ${result.ghn.stats.totalDays || 0} ngày, ${result.ghn.stats.rowsWritten || 0} dòng`);
+                } else {
+                    console.error('[SCRIPT] triggerCreateReports function not found');
+                    alert('Lỗi: Không tìm thấy function triggerCreateReports');
+                }
+            } catch (error) {
+                console.error('[SCRIPT] Error generating reports:', error);
+                alert('Lỗi khi tạo báo cáo: ' + error.message);
+            } finally {
+                // Reset button state
+                svg.style.animation = '';
+                generateBtn.disabled = false;
+                generateBtn.style.pointerEvents = '';
+            }
+        });
+    }
+
     // Refresh button handler - load dữ liệu theo trang đang active
     const refreshBtn = document.getElementById('refreshDataBtn');
     if (refreshBtn) {

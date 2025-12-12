@@ -989,3 +989,33 @@ window.initReconciliationPage = function() {
 // Export loadJNTData và loadGHNData để refresh button có thể gọi
 window.loadJNTData = loadJNTData;
 window.loadGHNData = loadGHNData;
+
+// Hàm trigger tạo reports từ backend (gọi createJNTReport và createGHNReport)
+window.triggerCreateReports = async function() {
+    console.log('[RECONCILIATION] Triggering report creation...');
+
+    try {
+        const url = `${WEB_APP_URL}?action=triggerAllReports`;
+        console.log('[RECONCILIATION] Calling:', url);
+
+        const response = await fetch(url);
+        const result = await response.json();
+
+        console.log('[RECONCILIATION] Report creation result:', result);
+
+        if (result.success) {
+            console.log('[RECONCILIATION] ✅ Reports created successfully');
+            console.log('[RECONCILIATION] J&T stats:', result.jnt.stats);
+            console.log('[RECONCILIATION] GHN stats:', result.ghn.stats);
+            return result;
+        } else {
+            console.error('[RECONCILIATION] ❌ Report creation failed');
+            console.error('[RECONCILIATION] J&T:', result.jnt.message);
+            console.error('[RECONCILIATION] GHN:', result.ghn.message);
+            throw new Error('Failed to create reports');
+        }
+    } catch (error) {
+        console.error('[RECONCILIATION] Error triggering reports:', error);
+        throw error;
+    }
+};
