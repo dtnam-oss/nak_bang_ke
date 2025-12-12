@@ -632,6 +632,7 @@ function initJNTEventListeners() {
 // Global variables for GHN
 let ghnReportData = {};
 let ghnFilteredData = [];
+let ghnCurrentDisplayType = 'theo-ca';
 
 // Load dữ liệu GHN từ Google Apps Script
 async function loadGHNData() {
@@ -691,15 +692,12 @@ async function loadGHNData() {
 // Populate bộ lọc từ dữ liệu GHN
 function populateGHNFilters(data) {
     const plateSelect = document.getElementById('ghnPlateSelect');
-    const routeSelect = document.getElementById('ghnRouteSelect');
 
     const plates = new Set();
-    const routes = new Set();
 
-    // Extract unique values
+    // Extract unique values (biển số)
     for (const date in data) {
         for (const loaiChuyen in data[date]) {
-            routes.add(loaiChuyen);
             for (const bienSo in data[date][loaiChuyen]) {
                 plates.add(bienSo);
             }
@@ -716,25 +714,23 @@ function populateGHNFilters(data) {
             plateSelect.appendChild(option);
         });
     }
-
-    // Populate route select (loại chuyến)
-    if (routeSelect) {
-        routeSelect.innerHTML = '<option value="">-- Tất cả --</option>';
-        Array.from(routes).sort().forEach(route => {
-            const option = document.createElement('option');
-            option.value = route;
-            option.textContent = route;
-            routeSelect.appendChild(option);
-        });
-    }
 }
 
 // Áp dụng bộ lọc GHN (tương tự J&T với date range)
 function applyGHNFilter() {
+    // Get current display type from toggle buttons
+    const activeBtn = document.querySelector('#ghnTabContent .toggle-btn.active');
+    const displayType = activeBtn ? activeBtn.getAttribute('data-view') : 'theo-ca';
+
     const dateFrom = document.getElementById('ghnDateFrom').value;
     const dateTo = document.getElementById('ghnDateTo').value;
     const selectedPlate = document.getElementById('ghnPlateSelect').value;
-    const selectedRoute = document.getElementById('ghnRouteSelect').value;
+    const searchTrip = document.getElementById('ghnSearchTrip').value.trim().toLowerCase();
+
+    ghnCurrentDisplayType = displayType;
+
+    // Determine loai_chuyen value based on display type
+    const loaiChuyenFilter = displayType === 'theo-ca' ? 'Theo ca' : 'Theo chuyến';
 
     // Filter data
     ghnFilteredData = [];
@@ -756,14 +752,32 @@ function applyGHNFilter() {
         if (currentDate >= fromDate && currentDate <= toDate) {
             const dateData = ghnReportData[dateKey];
 
-            // Filter by loai_chuyen (route) and plate
+            // Filter by loai_chuyen (based on display type)
             for (const loaiChuyen in dateData) {
-                if (selectedRoute && loaiChuyen !== selectedRoute) continue;
+                // Only include data matching the selected loai_chuyen
+                if (loaiChuyen !== loaiChuyenFilter) continue;
 
                 for (const bienSo in dateData[loaiChuyen]) {
                     if (selectedPlate && bienSo !== selectedPlate) continue;
 
                     const vehicleData = dateData[loaiChuyen][bienSo];
+
+                    // Filter by search trip (mã chuyến)
+                    if (searchTrip) {
+                        // Check if any trip contains the search term
+                        const hasMatchingTrip = vehicleData.chi_tiet_chuyen_di.some(trip => {
+                            const maChuyens = Array.isArray(trip.ma_chuyen_di_kh)
+                                ? trip.ma_chuyen_di_kh
+                                : (trip.ma_chuyen_di_kh ? [trip.ma_chuyen_di_kh] : []);
+
+                            return maChuyens.some(maChuyen =>
+                                maChuyen.toString().toLowerCase().includes(searchTrip)
+                            );
+                        });
+
+                        if (!hasMatchingTrip) continue;
+                    }
+
                     ghnFilteredData.push(vehicleData);
                 }
             }
@@ -965,6 +979,26 @@ async function exportGHNToExcel() {
 
 // ===== GHN EVENT LISTENERS =====
 function initGHNEventListeners() {
+    // Toggle buttons for display type
+    const btnTheoCa = document.getElementById('ghnBtnTheoCa');
+    const btnTheoChuyen = document.getElementById('ghnBtnTheoChuyen');
+
+    if (btnTheoCa) {
+        btnTheoCa.addEventListener('click', function() {
+            document.querySelectorAll('#ghnTabContent .toggle-btn').forEach(btn => btn.classList.remove('active'));
+            this.classList.add('active');
+            applyGHNFilter();
+        });
+    }
+
+    if (btnTheoChuyen) {
+        btnTheoChuyen.addEventListener('click', function() {
+            document.querySelectorAll('#ghnTabContent .toggle-btn').forEach(btn => btn.classList.remove('active'));
+            this.classList.add('active');
+            applyGHNFilter();
+        });
+    }
+
     // Apply filter button
     const applyBtn = document.getElementById('ghnApplyFilter');
     if (applyBtn) {
@@ -975,12 +1009,19 @@ function initGHNEventListeners() {
     const resetBtn = document.getElementById('ghnResetFilter');
     if (resetBtn) {
         resetBtn.addEventListener('click', () => {
+            // Reset toggle buttons
+            document.querySelectorAll('#ghnTabContent .toggle-btn').forEach(btn => btn.classList.remove('active'));
+            const btnTheoCa = document.getElementById('ghnBtnTheoCa');
+            if (btnTheoCa) {
+                btnTheoCa.classList.add('active');
+            }
+
             // Reset date range to today
             const today = new Date().toISOString().split('T')[0];
             document.getElementById('ghnDateFrom').value = today;
             document.getElementById('ghnDateTo').value = today;
             document.getElementById('ghnPlateSelect').value = '';
-            document.getElementById('ghnRouteSelect').value = '';
+            document.getElementById('ghnSearchTrip').value = '';
             applyGHNFilter();
         });
     }
@@ -989,6 +1030,18 @@ function initGHNEventListeners() {
     const exportBtn = document.getElementById('ghnExportExcel');
     if (exportBtn) {
         exportBtn.addEventListener('click', exportGHNToExcel);
+    }
+
+    // Search input - real-time search
+    const searchInput = document.getElementById('ghnSearchTrip');
+    if (searchInput) {
+        searchInput.addEventListener('input', function() {
+            // Debounce search
+            clearTimeout(this.searchTimeout);
+            this.searchTimeout = setTimeout(() => {
+                applyGHNFilter();
+            }, 300);
+        });
     }
 }
 

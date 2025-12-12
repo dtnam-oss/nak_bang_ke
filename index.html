@@ -330,6 +330,14 @@
                 <div class="filter-section">
                     <div class="filter-container">
                         <div class="filter-item">
+                            <label>Hiển thị theo:</label>
+                            <div class="button-group">
+                                <button id="ghnBtnTheoCa" class="toggle-btn active" data-view="theo-ca">Theo ca</button>
+                                <button id="ghnBtnTheoChuyen" class="toggle-btn" data-view="theo-chuyen">Theo chuyến</button>
+                            </div>
+                        </div>
+
+                        <div class="filter-item">
                             <label for="ghnDateFrom">Từ ngày:</label>
                             <input type="date" id="ghnDateFrom" class="date-input">
                         </div>
@@ -347,10 +355,8 @@
                         </div>
 
                         <div class="filter-item">
-                            <label for="ghnRouteSelect">Loại chuyến:</label>
-                            <select id="ghnRouteSelect" class="select-dropdown">
-                                <option value="">-- Tất cả --</option>
-                            </select>
+                            <label for="ghnSearchTrip">Tìm mã chuyến:</label>
+                            <input type="text" id="ghnSearchTrip" class="search-input" placeholder="Nhập mã chuyến...">
                         </div>
 
                         <div class="filter-item action-buttons-inline">
