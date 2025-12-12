@@ -9,39 +9,60 @@ let charts = {
 
 // Fetch report data from Google Apps Script
 async function fetchReportData() {
+    console.log('[REPORT] fetchReportData() called');
+    console.log('[REPORT] WEB_APP_URL:', typeof WEB_APP_URL !== 'undefined' ? WEB_APP_URL : 'UNDEFINED!');
+
     try {
         const url = `${WEB_APP_URL}?action=getReportData`;
+        console.log('[REPORT] Fetching from URL:', url);
+
         const response = await fetch(url);
+        console.log('[REPORT] Response status:', response.status, response.statusText);
 
         if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`);
         }
 
         const data = await response.json();
+        console.log('[REPORT] Data received:', data ? data.length : 0, 'records');
+        console.log('[REPORT] Sample data:', data && data.length > 0 ? data[0] : null);
 
         if (Array.isArray(data) && data.length > 0) {
             allReportData = data;
             currentReportData = [...allReportData];
+            console.log('[REPORT] Calling updateReportView()...');
             updateReportView();
         } else {
+            console.warn('[REPORT] No data received or empty array');
             allReportData = [];
             currentReportData = [];
         }
     } catch (error) {
-        console.error('Error fetching report data:', error);
+        console.error('[REPORT] Error fetching report data:', error);
         allReportData = [];
         currentReportData = [];
+        throw error; // Re-throw để initReportPage có thể bắt
     }
 }
 
 // Initialize report page
 async function initReportPage() {
+    console.log('[REPORT] initReportPage() called');
+
     try {
+        console.log('[REPORT] Starting fetchReportData...');
         await fetchReportData();
+        console.log('[REPORT] fetchReportData completed, data count:', allReportData.length);
+
+        console.log('[REPORT] Initializing filters...');
         initReportFilters();
+
+        console.log('[REPORT] Filtering by month...');
         filterReportByMonth(); // Default filter: Tháng này
+
+        console.log('[REPORT] initReportPage completed successfully');
     } catch (error) {
-        console.error('Error initializing report page:', error);
+        console.error('[REPORT] Error initializing report page:', error);
         // Hiển thị thông báo lỗi cho người dùng
         const baoCaoSection = document.getElementById('baoCaoSection');
         if (baoCaoSection) {
@@ -154,9 +175,18 @@ function filterReportByCustomDate() {
 
 // Update report view
 function updateReportView() {
+    console.log('[REPORT] updateReportView() called with', currentReportData.length, 'records');
+
+    console.log('[REPORT] Updating overview cards...');
     updateOverviewCards();
+
+    console.log('[REPORT] Updating charts...');
     updateCharts();
+
+    console.log('[REPORT] Updating vendor trips table...');
     updateVendorTripsTable();
+
+    console.log('[REPORT] updateReportView() completed');
 }
 
 // Update overview cards

@@ -357,8 +357,10 @@ function initNavigation() {
             // Show selected page
             switch(page) {
                 case 'bao-cao':
+                    console.log('[SCRIPT] Switching to Báo cáo menu');
                     document.getElementById('baoCaoSection').style.display = 'block';
                     if (typeof initReportPage === 'function') {
+                        console.log('[SCRIPT] Calling initReportPage() from menu switch');
                         initReportPage();
                     }
                     break;
@@ -443,8 +445,13 @@ document.addEventListener('DOMContentLoaded', () => {
     // Load dữ liệu cho trang Báo cáo sau khi tất cả scripts đã load
     // Sử dụng setTimeout để đảm bảo tất cả các file JS đã được parse
     setTimeout(() => {
+        console.log('[SCRIPT] Checking initReportPage function...');
+        console.log('[SCRIPT] initReportPage type:', typeof initReportPage);
         if (typeof initReportPage === 'function') {
+            console.log('[SCRIPT] Calling initReportPage()...');
             initReportPage();
+        } else {
+            console.error('[SCRIPT] initReportPage is not a function!');
         }
     }, 100);
 });
